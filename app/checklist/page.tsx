@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Navbar from '@/components/Navbar'
 
 const CHECKLIST_ITEMS: Record<string, string[]> = {
   'Fire Extinguisher': [
@@ -46,8 +47,7 @@ export default function ChecklistPage() {
   }, [])
 
   async function loadAssets() {
-    const { data } = await supabase.from('assets').select('id, location')
-      .eq('sub_category', category).order('id')
+    const { data } = await supabase.from('assets').select('id, location').eq('sub_category', category).order('id')
     setAssets(data || [])
     setSelectedAsset('')
     setChecks({})
@@ -82,12 +82,9 @@ export default function ChecklistPage() {
     }).select().single()
 
     if (!error && sub) {
-      const itemRows = items.map(label => ({
-        submission_id: sub.id,
-        label,
-        result: checks[label] ? 'OK' : 'NOK',
-      }))
-      await supabase.from('checklist_items').insert(itemRows)
+      await supabase.from('checklist_items').insert(
+        items.map(label => ({ submission_id: sub.id, label, result: checks[label] ? 'OK' : 'NOK' }))
+      )
       setSaved(true)
       setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2000)
     }
@@ -95,27 +92,25 @@ export default function ChecklistPage() {
   }
 
   return (
-    <div style={{ minHeight:'100vh', padding:'32px', background:'#f5f5f5' }}>
-      <div style={{ maxWidth:'700px', margin:'0 auto' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'16px', marginBottom:'24px' }}>
-          <a href="/dashboard" style={{ color:'#666', textDecoration:'none', fontSize:'13px' }}>← Dashboard</a>
-          <h1 style={{ fontSize:'20px', fontWeight:600, margin:0 }}>Form Checklist PM</h1>
-        </div>
+    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+      <Navbar />
+      <div style={{ padding: '32px', maxWidth: '700px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}>Form Checklist PM</h1>
 
-        <div style={{ background:'white', padding:'24px', borderRadius:'12px',
-          boxShadow:'0 2px 16px rgba(0,0,0,0.06)', marginBottom:'16px' }}>
-          <div style={{ marginBottom:'16px' }}>
-            <label style={{ fontSize:'13px', color:'#666', display:'block', marginBottom:'6px' }}>Kategori</label>
+        <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Kategori</label>
             <select value={category} onChange={e => setCategory(e.target.value)}
-              style={{ width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'14px' }}>
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
               <option>Fire Extinguisher</option>
               <option>Fire Hydrant</option>
             </select>
           </div>
-          <div style={{ marginBottom:'16px' }}>
-            <label style={{ fontSize:'13px', color:'#666', display:'block', marginBottom:'6px' }}>Pilih Unit</label>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Pilih Unit</label>
             <select value={selectedAsset} onChange={e => setSelectedAsset(e.target.value)}
-              style={{ width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'14px' }}>
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
               <option value="">-- Pilih unit --</option>
               {assets.map(a => (
                 <option key={a.id} value={a.id}>{a.id} — {a.location}</option>
@@ -123,42 +118,42 @@ export default function ChecklistPage() {
             </select>
           </div>
           <div>
-            <label style={{ fontSize:'13px', color:'#666', display:'block', marginBottom:'6px' }}>Inspector</label>
+            <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Inspector</label>
             <input value={inspector} onChange={e => setInspector(e.target.value)}
-              style={{ width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #ddd', fontSize:'14px', boxSizing:'border-box' }} />
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box' }} />
           </div>
         </div>
 
-        <div style={{ background:'white', padding:'24px', borderRadius:'12px',
-          boxShadow:'0 2px 16px rgba(0,0,0,0.06)', marginBottom:'16px' }}>
-          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'16px' }}>
-            <span style={{ fontSize:'14px', fontWeight:500 }}>Item Checklist ({items.length} poin)</span>
-            <span style={{ fontSize:'13px', color: allChecked ? '#22c55e' : '#f59e0b' }}>
+        <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Item Checklist ({items.length} poin)</span>
+            <span style={{ fontSize: '13px', color: allChecked ? '#22c55e' : '#f59e0b' }}>
               {checkedCount}/{items.length} OK
             </span>
           </div>
           {items.map(item => (
             <div key={item} onClick={() => toggleCheck(item)}
-              style={{ display:'flex', alignItems:'center', gap:'12px', padding:'12px',
-                borderRadius:'8px', marginBottom:'8px', cursor:'pointer',
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
+                borderRadius: '8px', marginBottom: '8px', cursor: 'pointer',
                 background: checks[item] ? '#f0fdf4' : '#fafafa',
                 border: checks[item] ? '1px solid #bbf7d0' : '1px solid #f0f0f0' }}>
-              <div style={{ width:'20px', height:'20px', borderRadius:'4px', flexShrink:0,
+              <div style={{ width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
                 background: checks[item] ? '#22c55e' : 'white',
                 border: checks[item] ? 'none' : '2px solid #ddd',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                color:'white', fontSize:'13px' }}>
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontSize: '13px' }}>
                 {checks[item] ? '✓' : ''}
               </div>
-              <span style={{ fontSize:'13px' }}>{item}</span>
+              <span style={{ fontSize: '13px' }}>{item}</span>
             </div>
           ))}
         </div>
 
         <button onClick={handleSubmit} disabled={saving || saved}
-          style={{ width:'100%', padding:'14px', borderRadius:'10px', border:'none',
-            background: saved ? '#22c55e' : '#1a73e8', color:'white',
-            fontSize:'15px', fontWeight:500, cursor:'pointer' }}>
+          style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none',
+            background: saved ? '#22c55e' : '#1a73e8', color: 'white',
+            fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>
           {saved ? '✓ Tersimpan!' : saving ? 'Menyimpan...' : 'Simpan Checklist'}
         </button>
       </div>
