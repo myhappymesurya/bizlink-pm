@@ -77,7 +77,9 @@ export default function HistoryPage() {
               ) : submissions.map((s, i) => (
                 <tr key={s.id} style={{ borderBottom: '1px solid #f0f0f0', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                   <td style={{ padding: '12px 16px', color: '#888', fontSize: '12px' }}>{new Date(s.submitted_at).toLocaleString('id-ID')}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: 500, color: '#1a73e8' }}>{s.asset_id}</td>
+                  <td style={{ padding: '12px 16px', fontWeight: 500 }}>
+  <a href={`/history/${s.id}`} style={{ color: '#1a73e8', textDecoration: 'none' }}>{s.asset_id}</a>
+</td>
                   <td style={{ padding: '12px 16px' }}>{s.sub_category}</td>
                   <td style={{ padding: '12px 16px' }}>{s.location || '—'}</td>
                   <td style={{ padding: '12px 16px' }}>{s.inspector}</td>
