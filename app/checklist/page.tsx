@@ -26,7 +26,34 @@ const CHECKLIST_ITEMS: Record<string, string[]> = {
     'Signage hydrant terlihat jelas',
     'Tidak ada kebocoran pada sambungan',
   ],
+  'AC Single Split': [
+    'Filter indoor dibersihkan',
+    'Kondisi unit indoor baik, tidak ada kerusakan fisik',
+    'Kondisi unit outdoor baik, tidak ada kerusakan fisik',
+    'Drain pan bersih dan tidak tersumbat',
+    'Drain pipe tidak tersumbat & air mengalir lancar',
+    'Remote control berfungsi normal',
+    'Temperatur setting sesuai standar operasional',
+    'Tidak ada suara atau getaran abnormal',
+    'Tidak ada tanda kebocoran refrigerant',
+    'Electrical connection dalam kondisi baik & aman',
+    'General cleaning dilakukan setelah pengecekan',
+  ],
+  'Panel Listrik': [
+    'Panel dalam kondisi bersih, tidak ada debu berlebih',
+    'Tidak ada tanda panas berlebih (discoloration, bau terbakar)',
+    'Semua MCB/breaker dalam kondisi ON & berfungsi normal',
+    'Label identifikasi setiap circuit terbaca jelas',
+    'Tidak ada kabel terkelupas atau koneksi longgar',
+    'Grounding terpasang dengan baik',
+    'Lampu indikator berfungsi normal',
+    'Pintu panel dapat ditutup & dikunci dengan baik',
+    'Tidak ada tanda kebocoran air di sekitar panel',
+    'General cleaning dilakukan setelah pengecekan',
+  ],
 }
+
+const CATEGORIES = ['Fire Extinguisher', 'Fire Hydrant', 'AC Single Split', 'Panel Listrik']
 
 type Asset = { id: string; location: string }
 
@@ -47,7 +74,8 @@ export default function ChecklistPage() {
   }, [])
 
   async function loadAssets() {
-    const { data } = await supabase.from('assets').select('id, location').eq('sub_category', category).order('id')
+    const { data } = await supabase.from('assets').select('id, location')
+      .eq('sub_category', category).order('id')
     setAssets(data || [])
     setSelectedAsset('')
     setChecks({})
@@ -71,7 +99,7 @@ export default function ChecklistPage() {
 
     const { data: sub, error } = await supabase.from('checklist_submissions').insert({
       asset_id: selectedAsset,
-      category: 'Fire Safety',
+      category: category === 'Panel Listrik' ? 'Electrical' : category === 'AC Single Split' ? 'Mechanical' : 'Fire Safety',
       sub_category: category,
       status: allChecked ? 'ok' : 'nok',
       inspector,
@@ -86,7 +114,7 @@ export default function ChecklistPage() {
         items.map(label => ({ submission_id: sub.id, label, result: checks[label] ? 'OK' : 'NOK' }))
       )
       setSaved(true)
-      setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2000)
+      setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
     }
     setSaving(false)
   }
@@ -103,8 +131,7 @@ export default function ChecklistPage() {
             <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Kategori</label>
             <select value={category} onChange={e => setCategory(e.target.value)}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
-              <option>Fire Extinguisher</option>
-              <option>Fire Hydrant</option>
+              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div style={{ marginBottom: '16px' }}>
@@ -120,14 +147,17 @@ export default function ChecklistPage() {
           <div>
             <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Inspector</label>
             <input value={inspector} onChange={e => setInspector(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd',
+                fontSize: '14px', boxSizing: 'border-box' }} />
           </div>
         </div>
 
         <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
           boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 500 }}>Item Checklist ({items.length} poin)</span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>
+              Item Checklist ({items.length} poin)
+            </span>
             <span style={{ fontSize: '13px', color: allChecked ? '#22c55e' : '#f59e0b' }}>
               {checkedCount}/{items.length} OK
             </span>
