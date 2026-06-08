@@ -17,16 +17,49 @@ const CHECKLIST_ITEMS: Record<string, string[]> = {
     'Berat dalam batas ±10% dari kapasitas FE',
   ],
   'Fire Hydrant': [
-    'Area hydrant clear & tidak terhalang',
-    'Box hydrant kondisi baik & tidak berkarat',
-    'Hose tersedia & kondisi baik',
-    'Nozzle tersedia & kondisi baik',
-    'Valve dapat dibuka & ditutup dengan baik',
-    'Pressure gauge dalam kondisi baik',
-    'Signage hydrant terlihat jelas',
-    'Tidak ada kebocoran pada sambungan',
-  ],
-  'AC Single Split': [
+  // Hydrant Box
+  'Kondisi box bersih (tidak berdebu, tidak ada serangga)',
+  'Tidak ada barang lain selain perlengkapan hydrant',
+  'Box hydrant tidak terhalang',
+  'Engsel pintu tidak macet',
+  // Hose
+  'Selang tidak dalam keadaan bocor',
+  'Selang tersusun rapi di hose rack',
+  'Kondisi selang baik',
+  // Hose Rack
+  'Rack tidak ada yang patah / bengkok',
+  'Mudah diurai jika digunakan',
+  // Jet Nozzle
+  'Tidak terdapat retakan atau bocor pada jet nozzle',
+  'Kaitan sambungan coupling tidak aus',
+  'Nozzle tidak mampet',
+  // Coupling
+  'Ukuran diameter masing-masing sambungan sama',
+  'Coupling mudah digunakan & tidak berkarat',
+  // Alarm
+  'Lampu alarm berfungsi dengan baik',
+  'Bel berfungsi dengan baik',
+],
+  'Smoke & Heat Detector': [
+  'Detektor asap dipasang dengan aman di dinding atau ceiling',
+  'Detector asap tidak ada tanda-tanda kerusakan, terkena cat, terkena oli dan kotoran lainnya',
+  'Tidak terdapat tanda-tanda kerusakan kabel penghubung ke alarm',
+  'Lubang ventilasi smoke detector bersih dan tidak ada penghalang',
+  'Sinyal alarm menyala saat diuji',
+],
+'Evacuation Lamp': [
+  'Lampu exit menyala dan berfungsi normal',
+  'Lampu arah evakuasi menyala dan berfungsi normal',
+  'Lampu emergency menyala dan berfungsi normal',
+  'Test durasi 30 detik lampu emergency berfungsi normal',
+],
+'Emergency Door': [
+  'Pintu emergency dalam kondisi baik & berfungsi normal',
+  'Pintu emergency dalam kondisi bersih',
+  'Pintu emergency tidak terhalang',
+  'Alarm pintu emergency berfungsi dengan baik',
+  'Lampu exit sign menyala & terpasang dengan baik',
+],'AC Single Split': [
     'Filter indoor dibersihkan',
     'Kondisi unit indoor baik, tidak ada kerusakan fisik',
     'Kondisi unit outdoor baik, tidak ada kerusakan fisik',
@@ -53,7 +86,15 @@ const CHECKLIST_ITEMS: Record<string, string[]> = {
   ],
 }
 
-const CATEGORIES = ['Fire Extinguisher', 'Fire Hydrant', 'AC Single Split', 'Panel Listrik']
+const CATEGORIES = [
+  'Fire Extinguisher',
+  'Fire Hydrant',
+  'Emergency Door',
+  'Smoke & Heat Detector',
+  'Evacuation Lamp',
+  'AC Single Split',
+  'Panel Listrik'
+]
 
 type Asset = { id: string; location: string }
 
