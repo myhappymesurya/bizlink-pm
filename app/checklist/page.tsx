@@ -17,49 +17,44 @@ const CHECKLIST_ITEMS: Record<string, string[]> = {
     'Berat dalam batas ±10% dari kapasitas FE',
   ],
   'Fire Hydrant': [
-  // Hydrant Box
-  'Kondisi box bersih (tidak berdebu, tidak ada serangga)',
-  'Tidak ada barang lain selain perlengkapan hydrant',
-  'Box hydrant tidak terhalang',
-  'Engsel pintu tidak macet',
-  // Hose
-  'Selang tidak dalam keadaan bocor',
-  'Selang tersusun rapi di hose rack',
-  'Kondisi selang baik',
-  // Hose Rack
-  'Rack tidak ada yang patah / bengkok',
-  'Mudah diurai jika digunakan',
-  // Jet Nozzle
-  'Tidak terdapat retakan atau bocor pada jet nozzle',
-  'Kaitan sambungan coupling tidak aus',
-  'Nozzle tidak mampet',
-  // Coupling
-  'Ukuran diameter masing-masing sambungan sama',
-  'Coupling mudah digunakan & tidak berkarat',
-  // Alarm
-  'Lampu alarm berfungsi dengan baik',
-  'Bel berfungsi dengan baik',
-],
+    'Kondisi box bersih (tidak berdebu, tidak ada serangga)',
+    'Tidak ada barang lain selain perlengkapan hydrant',
+    'Box hydrant tidak terhalang',
+    'Engsel pintu tidak macet',
+    'Selang tidak dalam keadaan bocor',
+    'Selang tersusun rapi di hose rack',
+    'Kondisi selang baik',
+    'Rack tidak ada yang patah / bengkok',
+    'Mudah diurai jika digunakan',
+    'Tidak terdapat retakan atau bocor pada jet nozzle',
+    'Kaitan sambungan coupling tidak aus',
+    'Nozzle tidak mampet',
+    'Ukuran diameter masing-masing sambungan sama',
+    'Coupling mudah digunakan & tidak berkarat',
+    'Lampu alarm berfungsi dengan baik',
+    'Bel berfungsi dengan baik',
+  ],
+  'Emergency Door': [
+    'Pintu emergency dalam kondisi baik & berfungsi normal',
+    'Pintu emergency dalam kondisi bersih',
+    'Pintu emergency tidak terhalang',
+    'Alarm pintu emergency berfungsi dengan baik',
+    'Lampu exit sign menyala & terpasang dengan baik',
+  ],
   'Smoke & Heat Detector': [
-  'Detektor asap dipasang dengan aman di dinding atau ceiling',
-  'Detector asap tidak ada tanda-tanda kerusakan, terkena cat, terkena oli dan kotoran lainnya',
-  'Tidak terdapat tanda-tanda kerusakan kabel penghubung ke alarm',
-  'Lubang ventilasi smoke detector bersih dan tidak ada penghalang',
-  'Sinyal alarm menyala saat diuji',
-],
-'Evacuation Lamp': [
-  'Lampu exit menyala dan berfungsi normal',
-  'Lampu arah evakuasi menyala dan berfungsi normal',
-  'Lampu emergency menyala dan berfungsi normal',
-  'Test durasi 30 detik lampu emergency berfungsi normal',
-],
-'Emergency Door': [
-  'Pintu emergency dalam kondisi baik & berfungsi normal',
-  'Pintu emergency dalam kondisi bersih',
-  'Pintu emergency tidak terhalang',
-  'Alarm pintu emergency berfungsi dengan baik',
-  'Lampu exit sign menyala & terpasang dengan baik',
-],'AC Single Split': [
+    'Detektor asap dipasang dengan aman di dinding atau ceiling',
+    'Detector asap tidak ada tanda-tanda kerusakan, terkena cat, terkena oli dan kotoran lainnya',
+    'Tidak terdapat tanda-tanda kerusakan kabel penghubung ke alarm',
+    'Lubang ventilasi smoke detector bersih dan tidak ada penghalang',
+    'Sinyal alarm menyala saat diuji',
+  ],
+  'Evacuation Lamp': [
+    'Lampu exit menyala dan berfungsi normal',
+    'Lampu arah evakuasi menyala dan berfungsi normal',
+    'Lampu emergency menyala dan berfungsi normal',
+    'Test durasi 30 detik lampu emergency berfungsi normal',
+  ],
+  'AC Single Split': [
     'Filter indoor dibersihkan',
     'Kondisi unit indoor baik, tidak ada kerusakan fisik',
     'Kondisi unit outdoor baik, tidak ada kerusakan fisik',
@@ -70,6 +65,50 @@ const CHECKLIST_ITEMS: Record<string, string[]> = {
     'Tidak ada suara atau getaran abnormal',
     'Tidak ada tanda kebocoran refrigerant',
     'Electrical connection dalam kondisi baik & aman',
+    'General cleaning dilakukan setelah pengecekan',
+  ],
+  'AC Cassette': [
+    'Filter indoor dibersihkan',
+    'Kondisi unit cassette baik, tidak ada kerusakan fisik',
+    'Kondisi unit outdoor baik, tidak ada kerusakan fisik',
+    'Panel depan cassette kondisi baik dan terpasang rapi',
+    '4 arah aliran udara berfungsi normal',
+    'Drain pan bersih dan tidak tersumbat',
+    'Drain pipe tidak tersumbat & air mengalir lancar',
+    'Remote control berfungsi normal',
+    'Temperatur setting sesuai standar operasional',
+    'Tidak ada suara atau getaran abnormal',
+    'Tidak ada tanda kebocoran refrigerant',
+    'Electrical connection dalam kondisi baik & aman',
+    'General cleaning dilakukan setelah pengecekan',
+  ],
+  'AC Single Split Duct Type': [
+    'Filter udara dibersihkan',
+    'Kondisi unit indoor baik, tidak ada kerusakan fisik',
+    'Kondisi unit outdoor baik, tidak ada kerusakan fisik',
+    'Duct/saluran udara tidak bocor dan kondisi baik',
+    'Grille dan diffuser bersih dan tidak tersumbat',
+    'Drain pan bersih dan tidak tersumbat',
+    'Drain pipe tidak tersumbat & air mengalir lancar',
+    'Blower/fan berfungsi normal, tidak ada suara abnormal',
+    'Temperatur supply air sesuai standar',
+    'Tidak ada tanda kebocoran refrigerant',
+    'Electrical connection dalam kondisi baik & aman',
+    'General cleaning dilakukan setelah pengecekan',
+  ],
+  'AC Multi Split Duct Type': [
+    'Filter semua unit indoor dibersihkan',
+    'Kondisi semua unit indoor baik, tidak ada kerusakan fisik',
+    'Kondisi unit outdoor baik, tidak ada kerusakan fisik',
+    'Duct/saluran udara semua zone tidak bocor dan kondisi baik',
+    'Semua grille dan diffuser bersih dan tidak tersumbat',
+    'Drain pan semua unit bersih dan tidak tersumbat',
+    'Semua drain pipe tidak tersumbat & air mengalir lancar',
+    'Semua blower/fan berfungsi normal, tidak ada suara abnormal',
+    'Refrigerant pressure dalam range normal',
+    'Tidak ada tanda kebocoran refrigerant',
+    'Electrical connection semua unit kondisi baik & aman',
+    'Semua zone temperatur sesuai standar operasional',
     'General cleaning dilakukan setelah pengecekan',
   ],
   'Panel Listrik': [
@@ -86,20 +125,126 @@ const CHECKLIST_ITEMS: Record<string, string[]> = {
   ],
 }
 
+const FREQ_CHECKLIST_ITEMS: Record<string, Record<string, string[]>> = {
+  'AC Package': {
+    'Weekly': [
+      'Periksa filter udara yang terpasang dan, jika perlu, sedot atau bersihkan',
+      'Periksa apakah pembuangan kondensat lancar',
+      'Periksa apakah ada noda di setiap bagian kompresor untuk menilai apakah refrigerant bocor',
+      'Periksa apakah titik sambungan sirkuit sudah kencang',
+    ],
+    'Quarterly': [
+      'Periksa apakah semua kipas dan motor sudah terhubung dengan baik',
+      'Periksa apakah titik-titik sambungan sirkuit telah dikencangkan',
+      'Periksa apakah kipas beroperasi secara normal',
+      'Periksa tekanan kerja hisap dan buang',
+      'Bersihkan saringan udara keluar udara segar',
+      'Periksa apakah kondensat keluar dengan bebas',
+    ],
+    'Annually': [
+      'Periksa pengoperasian yang benar dari semua perangkat listrik (sakelar tegangan rendah & tinggi, kontaktor kompresor, defrost controller)',
+      'Periksa apakah ada goresan dan getaran pada semua pipa refrigerant',
+      'Periksa volume suplai udara dari setiap diffuser',
+      'Periksa tingkat kebisingan dan getaran, jika berlebihan harus disesuaikan',
+      'Periksa apakah saluran udara dan insulasi mengalami kerusakan dan terpelihara',
+      'Bersihkan debu sirip kondensor dan flokulan',
+    ],
+  },
+  'Cooling Tower': {
+    'Daily': [
+      'Periksa ketinggian air',
+      'Cek tekanan air di pompa supply (3-4 bar)',
+    ],
+    'Monthly': [
+      'Periksa apakah ada suara atau getaran yang tidak biasa',
+      'Periksa apakah ada kebocoran',
+      'Cek tegangan belt',
+      'Cek kebersihan basin',
+    ],
+    'Quarterly': [
+      'Cek pelumasan pada belt',
+      'Cek apakah ada penyumbatan pada sistem distribusi air',
+      'Cek apakah ada penyumbatan pada nozzle',
+    ],
+    'Bi Annually': [
+      'Cek arus listrik dan insulasi pada motor',
+      'Cek Fan',
+      'Cek tegangan belt',
+      'Cek kebersihan basin',
+    ],
+  },
+  'Exhaust Fan': {
+    'Monthly': [
+      'Kondisi fisik unit exhaust fan baik, tidak ada kerusakan fisik',
+      'Exhaust fan berfungsi normal (on/off)',
+      'Tidak ada suara atau getaran yang tidak normal',
+      'Grille/kisi-kisi tidak tersumbat',
+      'Bersihkan grille/kisi-kisi dari debu dan kotoran',
+      'Periksa kondisi blade/impeller tidak ada kerusakan',
+    ],
+    'Quarterly': [
+      'Bersihkan blade/impeller dari debu dan kotoran',
+      'Periksa kondisi bearing, tidak ada suara abnormal',
+      'Periksa sambungan kabel dan kondisi panel control',
+      'Periksa duct/saluran exhaust tidak tersumbat',
+    ],
+    'Annually': [
+      'Lubrikasi bearing motor',
+      'Periksa dan kencangkan semua baut dan mur',
+      'Bersihkan motor dari debu secara menyeluruh',
+      'Periksa kondisi belt — keausan dan ketegangan (jika ada)',
+      'Test kapasitas airflow sesuai spesifikasi',
+    ],
+  },
+  'Adsorption Tower': {
+    'Weekly': [
+      'Pressure drop melintasi tower dalam batas normal',
+      'Indikator moisture/dew point dalam kondisi normal',
+      'Tidak ada kebocoran pada pipa dan sambungan',
+      'Valve inlet dan outlet dalam kondisi terbuka',
+    ],
+    'Monthly': [
+      'Kondisi fisik unit baik, tidak ada kerusakan fisik',
+      'Switching valve berfungsi normal',
+      'Timer/controller berfungsi normal sesuai setting',
+      'Pressure gauge berfungsi normal',
+      'Bersihkan area sekitar unit',
+    ],
+    'Quarterly': [
+      'Periksa kondisi desiccant/material penyerap',
+      'Periksa dan bersihkan filter pre-separator',
+      'Kencangkan semua sambungan pipa dan baut',
+      'Periksa kondisi valve dan aktuator',
+    ],
+    'Annually': [
+      'Ganti desiccant material jika diperlukan',
+      'Overhaul valve switching',
+      'Kalibrasi pressure gauge dan moisture indicator',
+      'Bersihkan menyeluruh bagian dalam tower',
+    ],
+  },
+}
+
+const FREQ_OPTIONS: Record<string, string[]> = {
+  'AC Package': ['Weekly', 'Quarterly', 'Annually'],
+  'Cooling Tower': ['Daily', 'Monthly', 'Quarterly', 'Bi Annually'],
+  'Exhaust Fan': ['Monthly', 'Quarterly', 'Annually'],
+  'Adsorption Tower': ['Weekly', 'Monthly', 'Quarterly', 'Annually'],
+}
+
 const CATEGORIES = [
-  'Fire Extinguisher',
-  'Fire Hydrant',
-  'Emergency Door',
-  'Smoke & Heat Detector',
-  'Evacuation Lamp',
-  'AC Single Split',
-  'Panel Listrik'
+  'Fire Extinguisher', 'Fire Hydrant', 'Emergency Door',
+  'Smoke & Heat Detector', 'Evacuation Lamp',
+  'AC Single Split', 'AC Cassette', 'AC Single Split Duct Type',
+  'AC Multi Split Duct Type', 'AC Package', 'Cooling Tower',
+  'Exhaust Fan', 'Adsorption Tower', 'Panel Listrik',
 ]
 
 type Asset = { id: string; location: string }
 
 export default function ChecklistPage() {
   const [category, setCategory] = useState('Fire Extinguisher')
+  const [frequency, setFrequency] = useState('')
   const [assets, setAssets] = useState<Asset[]>([])
   const [selectedAsset, setSelectedAsset] = useState('')
   const [checks, setChecks] = useState<Record<string, boolean>>({})
@@ -107,7 +252,15 @@ export default function ChecklistPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  useEffect(() => { loadAssets() }, [category])
+  const isFreqBased = category in FREQ_OPTIONS
+
+  useEffect(() => {
+    setFrequency(isFreqBased ? FREQ_OPTIONS[category][0] : '')
+    loadAssets()
+  }, [category])
+
+  useEffect(() => { setChecks({}) }, [frequency])
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setInspector(data.user?.email?.split('@')[0] || '')
@@ -126,27 +279,35 @@ export default function ChecklistPage() {
     setChecks(prev => ({ ...prev, [item]: !prev[item] }))
   }
 
-  const items = CHECKLIST_ITEMS[category] || []
-  const allChecked = items.every(item => checks[item])
+  const items = isFreqBased
+    ? (FREQ_CHECKLIST_ITEMS[category]?.[frequency] || [])
+    : (CHECKLIST_ITEMS[category] || [])
+
+  const allChecked = items.length > 0 && items.every(item => checks[item])
   const checkedCount = items.filter(item => checks[item]).length
 
   async function handleSubmit() {
     if (!selectedAsset) return alert('Pilih unit terlebih dahulu')
+    if (isFreqBased && !frequency) return alert('Pilih frekuensi terlebih dahulu')
     setSaving(true)
     const now = new Date()
     const month = now.toLocaleString('en', { month: 'long' })
     const year = now.getFullYear()
     const asset = assets.find(a => a.id === selectedAsset)
+    const cat = ['Fire Extinguisher','Fire Hydrant','Emergency Door','Smoke & Heat Detector','Evacuation Lamp'].includes(category)
+      ? 'Fire Safety'
+      : ['Panel Listrik'].includes(category) ? 'Electrical' : 'HVAC'
 
     const { data: sub, error } = await supabase.from('checklist_submissions').insert({
       asset_id: selectedAsset,
-      category: category === 'Panel Listrik' ? 'Electrical' : category === 'AC Single Split' ? 'Mechanical' : 'Fire Safety',
+      category: cat,
       sub_category: category,
       status: allChecked ? 'ok' : 'nok',
       inspector,
       year,
       month,
       location: asset?.location || '',
+      notes: isFreqBased ? `Frekuensi: ${frequency}` : '',
       submitted_at: now.toISOString(),
     }).select().single()
 
@@ -175,6 +336,17 @@ export default function ChecklistPage() {
               {CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
+
+          {isFreqBased && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Frekuensi</label>
+              <select value={frequency} onChange={e => setFrequency(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
+                {FREQ_OPTIONS[category].map(f => <option key={f}>{f}</option>)}
+              </select>
+            </div>
+          )}
+
           <div style={{ marginBottom: '16px' }}>
             <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Pilih Unit</label>
             <select value={selectedAsset} onChange={e => setSelectedAsset(e.target.value)}
@@ -185,6 +357,7 @@ export default function ChecklistPage() {
               ))}
             </select>
           </div>
+
           <div>
             <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Inspector</label>
             <input value={inspector} onChange={e => setInspector(e.target.value)}
@@ -203,7 +376,11 @@ export default function ChecklistPage() {
               {checkedCount}/{items.length} OK
             </span>
           </div>
-          {items.map(item => (
+          {items.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#aaa', padding: '20px', fontSize: '13px' }}>
+              Pilih kategori dan frekuensi untuk melihat item checklist
+            </div>
+          ) : items.map(item => (
             <div key={item} onClick={() => toggleCheck(item)}
               style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
                 borderRadius: '8px', marginBottom: '8px', cursor: 'pointer',
