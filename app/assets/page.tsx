@@ -13,53 +13,84 @@ type Asset = {
   expired_date: string
 }
 
+const CATEGORIES_MAP: Record<string, string[]> = {
+  'Fire Safety': ['Fire Extinguisher', 'Fire Hydrant', 'Emergency Door', 'Smoke & Heat Detector', 'Evacuation Lamp'],
+  'HVAC': ['AC Single Split', 'AC Cassette', 'AC Single Split Duct Type', 'AC Multi Split Duct Type', 'AC Package', 'Cooling Tower', 'Exhaust Fan', 'Adsorption Tower'],
+  'Electrical': ['Panel Listrik'],
+}
+
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([])
-  const [filter, setFilter] = useState('Fire Extinguisher')
+  const [category, setCategory] = useState('Fire Safety')
+  const [subCategory, setSubCategory] = useState('Fire Extinguisher')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadAssets() }, [filter])
+  useEffect(() => {
+    setSubCategory(CATEGORIES_MAP[category][0])
+  }, [category])
+
+  useEffect(() => { loadAssets() }, [subCategory])
 
   async function loadAssets() {
     setLoading(true)
-    const { data } = await supabase.from('assets').select('*').eq('sub_category', filter).order('id')
+    const { data } = await supabase.from('assets').select('*')
+      .eq('sub_category', subCategory).order('id')
     setAssets(data || [])
     setLoading(false)
   }
-
-  const tabs = ['Fire Extinguisher','Fire Hydrant','AC Single Split','Panel Listrik']
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       <Navbar />
       <div style={{ padding: '32px', maxWidth: '1100px', margin: '0 auto' }}>
         <h1 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}>Daftar Asset</h1>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          {tabs.map(tab => (
-            <button key={tab} onClick={() => setFilter(tab)}
-              style={{ padding: '8px 16px', border: 'none', borderRadius: '20px', cursor: 'pointer',
-                fontSize: '13px', fontWeight: 500,
-                background: filter === tab ? '#1a73e8' : 'white',
-                color: filter === tab ? 'white' : '#555',
+
+        {/* Level 1 - Category */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          {Object.keys(CATEGORIES_MAP).map(cat => (
+            <button key={cat} onClick={() => setCategory(cat)}
+              style={{ padding: '8px 18px', border: 'none', borderRadius: '20px',
+                cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                background: category === cat ? '#1a73e8' : 'white',
+                color: category === cat ? 'white' : '#555',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-              {tab}
+              {cat === 'Fire Safety' ? '🔴' : cat === 'HVAC' ? '❄️' : '⚡'} {cat}
             </button>
           ))}
         </div>
-        <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+
+        {/* Level 2 - Sub-category */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          {CATEGORIES_MAP[category].map(sub => (
+            <button key={sub} onClick={() => setSubCategory(sub)}
+              style={{ padding: '6px 14px', border: 'none', borderRadius: '16px',
+                cursor: 'pointer', fontSize: '12px', fontWeight: 500,
+                background: subCategory === sub ? '#e8f0fe' : '#f0f0f0',
+                color: subCategory === sub ? '#1a73e8' : '#666' }}>
+              {sub}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ background: 'white', borderRadius: '12px',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: '#f8f9fa', borderBottom: '1px solid #eee' }}>
-                {['ID','Lokasi','Tipe','Kapasitas','Brand','S/N','Exp Date'].map(h => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: '#666', fontWeight: 500 }}>{h}</th>
+                {['ID', 'Lokasi', 'Tipe', 'Kapasitas', 'Brand', 'S/N', 'Exp Date'].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left',
+                    color: '#666', fontWeight: 500 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#aaa' }}>Loading...</td></tr>
+              ) : assets.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#aaa' }}>Belum ada data</td></tr>
               ) : assets.map((a, i) => (
-                <tr key={a.id} style={{ borderBottom: '1px solid #f0f0f0', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                <tr key={a.id} style={{ borderBottom: '1px solid #f0f0f0',
+                  background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                   <td style={{ padding: '12px 16px', fontWeight: 500, color: '#1a73e8' }}>{a.id}</td>
                   <td style={{ padding: '12px 16px' }}>{a.location || '—'}</td>
                   <td style={{ padding: '12px 16px' }}>{a.type || '—'}</td>
@@ -71,7 +102,8 @@ export default function AssetsPage() {
               ))}
             </tbody>
           </table>
-          <div style={{ padding: '12px 16px', color: '#888', fontSize: '12px', borderTop: '1px solid #f0f0f0' }}>
+          <div style={{ padding: '12px 16px', color: '#888', fontSize: '12px',
+            borderTop: '1px solid #f0f0f0' }}>
             Total: {assets.length} unit
           </div>
         </div>
