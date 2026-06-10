@@ -17,6 +17,7 @@ const CATEGORIES_MAP: Record<string, string[]> = {
   'Fire Safety': ['Fire Extinguisher', 'Fire Hydrant', 'Emergency Door', 'Smoke & Heat Detector', 'Evacuation Lamp'],
   'HVAC': ['AC Single Split', 'AC Cassette', 'AC Single Split Duct Type', 'AC Multi Split Duct Type', 'AC Package', 'Cooling Tower', 'Exhaust Fan', 'Adsorption Tower'],
   'Electrical': ['Panel Listrik'],
+  'Mechanical': ['Air Compressor', 'Air Dryer', 'Pompa Distribusi CT 2 Cell', 'Pompa Distribusi CT 1 Cell', 'Pompa Supply CT', 'Pompa Booster'],
 }
 
 export default function AssetsPage() {
