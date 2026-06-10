@@ -125,6 +125,31 @@ const CHECKLIST_ITEMS: Record<string, string[]> = {
   ],
 }
 
+const PUMP_ITEMS: Record<string, string[]> = {
+  'Daily': [
+    'Cek tekanan pompa sesuai normal',
+    'Tidak ada kebocoran pada seal dan pipa',
+    'Suara dan getaran pompa normal',
+    'Flow rate sesuai spesifikasi',
+  ],
+  'Monthly': [
+    'Periksa kondisi seal/packing',
+    'Periksa kondisi bearing',
+    'Bersihkan strainer/filter inlet',
+    'Periksa kondisi coupling',
+  ],
+  'Quarterly': [
+    'Lubrikasi bearing',
+    'Periksa alignment pompa-motor',
+    'Periksa kondisi impeller',
+  ],
+  'Annually': [
+    'Overhaul pompa',
+    'Ganti mechanical seal',
+    'Periksa dan kalibrasi pressure gauge',
+  ],
+}
+
 const FREQ_CHECKLIST_ITEMS: Record<string, Record<string, string[]>> = {
   'AC Package': {
     'Weekly': [
@@ -223,6 +248,55 @@ const FREQ_CHECKLIST_ITEMS: Record<string, Record<string, string[]>> = {
       'Bersihkan menyeluruh bagian dalam tower',
     ],
   },
+  'Air Compressor': {
+    'Daily': [
+      'Cek level oli kompressor',
+      'Cek tekanan kerja sesuai setting (7-8 bar)',
+      'Suhu operasi dalam kondisi normal',
+      'Tidak ada kebocoran udara pada pipa dan fitting',
+      'Drain kondensat dari tangki angin',
+    ],
+    'Monthly': [
+      'Bersihkan atau ganti filter udara inlet',
+      'Cek kondisi oli (warna dan level)',
+      'Periksa semua baut dan mur',
+      'Bersihkan radiator/cooler dari debu',
+    ],
+    'Quarterly': [
+      'Cek kondisi safety valve',
+      'Bersihkan intercooler/aftercooler',
+      'Periksa kondisi bearing',
+    ],
+    'Annually': [
+      'Overhaul valve kompressor',
+      'Ganti filter oli dan separator',
+      'Kalibrasi pressure switch dan safety valve',
+      'Periksa kondisi motor listrik',
+    ],
+  },
+  'Air Dryer': {
+    'Daily': [
+      'Pressure drop dalam batas normal',
+      'Dew point sesuai standar',
+      'Tidak ada kebocoran pada sambungan pipa',
+      'Drain trap berfungsi otomatis',
+    ],
+    'Monthly': [
+      'Bersihkan kondensor dari debu',
+      'Periksa kondisi filter pre dan after',
+      'Periksa refrigerant pressure',
+      'Bersihkan area sekitar unit',
+    ],
+    'Annually': [
+      'Ganti filter element',
+      'Service drain trap',
+      'Kalibrasi pressure gauge dan dew point meter',
+    ],
+  },
+  'Pompa Distribusi CT 2 Cell': PUMP_ITEMS,
+  'Pompa Distribusi CT 1 Cell': PUMP_ITEMS,
+  'Pompa Supply CT': PUMP_ITEMS,
+  'Pompa Booster': PUMP_ITEMS,
 }
 
 const FREQ_OPTIONS: Record<string, string[]> = {
@@ -230,6 +304,12 @@ const FREQ_OPTIONS: Record<string, string[]> = {
   'Cooling Tower': ['Daily', 'Monthly', 'Quarterly', 'Bi Annually'],
   'Exhaust Fan': ['Monthly', 'Quarterly', 'Annually'],
   'Adsorption Tower': ['Weekly', 'Monthly', 'Quarterly', 'Annually'],
+  'Air Compressor': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
+  'Air Dryer': ['Daily', 'Monthly', 'Annually'],
+  'Pompa Distribusi CT 2 Cell': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
+  'Pompa Distribusi CT 1 Cell': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
+  'Pompa Supply CT': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
+  'Pompa Booster': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
 }
 
 const CATEGORIES = [
@@ -237,7 +317,11 @@ const CATEGORIES = [
   'Smoke & Heat Detector', 'Evacuation Lamp',
   'AC Single Split', 'AC Cassette', 'AC Single Split Duct Type',
   'AC Multi Split Duct Type', 'AC Package', 'Cooling Tower',
-  'Exhaust Fan', 'Adsorption Tower', 'Panel Listrik',
+  'Exhaust Fan', 'Adsorption Tower',
+  'Panel Listrik',
+  'Air Compressor', 'Air Dryer',
+  'Pompa Distribusi CT 2 Cell', 'Pompa Distribusi CT 1 Cell',
+  'Pompa Supply CT', 'Pompa Booster',
 ]
 
 type Asset = { id: string; location: string }
@@ -294,9 +378,13 @@ export default function ChecklistPage() {
     const month = now.toLocaleString('en', { month: 'long' })
     const year = now.getFullYear()
     const asset = assets.find(a => a.id === selectedAsset)
-    const cat = ['Fire Extinguisher','Fire Hydrant','Emergency Door','Smoke & Heat Detector','Evacuation Lamp'].includes(category)
-      ? 'Fire Safety'
-      : ['Panel Listrik'].includes(category) ? 'Electrical' : 'HVAC'
+
+    const fireSafetyCats = ['Fire Extinguisher','Fire Hydrant','Emergency Door','Smoke & Heat Detector','Evacuation Lamp']
+    const electricalCats = ['Panel Listrik']
+    const mechanicalCats = ['Air Compressor','Air Dryer','Pompa Distribusi CT 2 Cell','Pompa Distribusi CT 1 Cell','Pompa Supply CT','Pompa Booster']
+    const cat = fireSafetyCats.includes(category) ? 'Fire Safety'
+      : electricalCats.includes(category) ? 'Electrical'
+      : mechanicalCats.includes(category) ? 'Mechanical' : 'HVAC'
 
     const { data: sub, error } = await supabase.from('checklist_submissions').insert({
       asset_id: selectedAsset,
@@ -369,16 +457,14 @@ export default function ChecklistPage() {
         <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
           boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 500 }}>
-              Item Checklist ({items.length} poin)
-            </span>
+            <span style={{ fontSize: '14px', fontWeight: 500 }}>Item Checklist ({items.length} poin)</span>
             <span style={{ fontSize: '13px', color: allChecked ? '#22c55e' : '#f59e0b' }}>
               {checkedCount}/{items.length} OK
             </span>
           </div>
           {items.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#aaa', padding: '20px', fontSize: '13px' }}>
-              Pilih kategori dan frekuensi untuk melihat item checklist
+              Pilih kategori untuk melihat item checklist
             </div>
           ) : items.map(item => (
             <div key={item} onClick={() => toggleCheck(item)}
