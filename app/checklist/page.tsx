@@ -297,6 +297,41 @@ const FREQ_CHECKLIST_ITEMS: Record<string, Record<string, string[]>> = {
   'Pompa Distribusi CT 1 Cell': PUMP_ITEMS,
   'Pompa Supply CT': PUMP_ITEMS,
   'Pompa Booster': PUMP_ITEMS,
+  'Pompa Pemadam Kebakaran': {
+  'Daily': [
+    'Voltage battery normal',
+    'Check tangki dan selang solar — terhadap kontaminasi air, endapan ataupun kotoran',
+    'Level solar di tangki minimal 2/3 penuh. Jika kurang, solar harus ditambah',
+    'Check level oil engine dengan dipstick',
+    'Cek kebocoran pada selang solar dari tangki ke diesel. Valve inlet dan return pada pipa solar dalam posisi open/buka',
+    'Cek lever campuran air pendingin / coolant',
+    'Check pipa dan valve saluran air pendingin dari pompa ke Heat Exchanger. Bersihkan strainer jika diperlukan',
+    'Semua valve pada pipa suction dan discharge pompa diesel dan jockey dalam kondisi open',
+    'Dengan "Manual Mode" — jalankan pompa jockey minimal selama 10 menit',
+    'Dengan "Manual Mode" — jalankan pompa diesel pada rate speed 3000 RPM minimal 30 menit, untuk memanaskan semua komponen dan menghilangkan kondensasi',
+    'Check pada kedua panel controller, pastikan selector switch pada posisi Automatic Start',
+    'Test automatic start: 6 Bar → Jockey ON, 4 Bar → Diesel ON. Pompa harus start sesuai setting',
+    'Tutup valve drain dan pastikan pompa mati dengan automatis',
+  ],
+  'Bi Weekly': [
+    'Level air aki di battery normal',
+    'Terminal battery harus bebas dari korosi / karat',
+  ],
+  'Monthly': [
+    'Casing battery bersih, kering dan bebas dari korosi',
+    'Bersihkan saringan dan filter di saluran bahan bakar',
+    'Buka dan bersihkan water strainer pada pipa saluran pendingin',
+    'Bersihkan box panel pompa diesel dan jockey',
+    'Cek kabel listrik — apakah ada pengelupasan ataupun short circuit',
+  ],
+  'Bi Annually': [
+    'Ganti oli mesin diesel, kapasitas oli mesin 7 liter',
+    'Kalibrasi pressure switch dan flow meter agar pembacaan tetap akurat',
+  ],
+  'Annually': [
+    'Lubrikasi seluruh bearing pada seluruh pompa dan diesel engine',
+  ],
+},
 }
 
 const FREQ_OPTIONS: Record<string, string[]> = {
@@ -310,6 +345,7 @@ const FREQ_OPTIONS: Record<string, string[]> = {
   'Pompa Distribusi CT 1 Cell': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
   'Pompa Supply CT': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
   'Pompa Booster': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
+  'Pompa Pemadam Kebakaran': ['Daily', 'Bi Weekly', 'Monthly', 'Bi Annually', 'Annually'],
 }
 
 const CATEGORIES = [
@@ -322,6 +358,7 @@ const CATEGORIES = [
   'Air Compressor', 'Air Dryer',
   'Pompa Distribusi CT 2 Cell', 'Pompa Distribusi CT 1 Cell',
   'Pompa Supply CT', 'Pompa Booster',
+  'Pompa Pemadam Kebakaran',
 ]
 
 type Asset = { id: string; location: string }
@@ -379,7 +416,7 @@ export default function ChecklistPage() {
     const year = now.getFullYear()
     const asset = assets.find(a => a.id === selectedAsset)
 
-    const fireSafetyCats = ['Fire Extinguisher','Fire Hydrant','Emergency Door','Smoke & Heat Detector','Evacuation Lamp']
+    const fireSafetyCats = ['Fire Extinguisher','Fire Hydrant','Emergency Door','Smoke & Heat Detector','Evacuation Lamp','Pompa Pemadam Kebakaran']
     const electricalCats = ['Panel Listrik']
     const mechanicalCats = ['Air Compressor','Air Dryer','Pompa Distribusi CT 2 Cell','Pompa Distribusi CT 1 Cell','Pompa Supply CT','Pompa Booster']
     const cat = fireSafetyCats.includes(category) ? 'Fire Safety'
@@ -409,7 +446,7 @@ export default function ChecklistPage() {
     // Auto-update PM Schedule
 const freqToUpdate = isFreqBased ? frequency : 'Monthly'
 const freqDays: Record<string, number> = {
-  'Daily': 1, 'Weekly': 7, 'Monthly': 30,
+  'Daily': 1, 'Weekly': 7, 'Bi Weekly': 14, 'Monthly': 30,
   'Quarterly': 90, 'Bi Annually': 180, 'Annually': 365,
 }
 const nextDue = new Date(now.getTime() + (freqDays[freqToUpdate] || 30) * 86400000)
