@@ -406,7 +406,25 @@ export default function ChecklistPage() {
       setSaved(true)
       setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
     }
-    setSaving(false)
+    // Auto-update PM Schedule
+const freqToUpdate = isFreqBased ? frequency : 'Monthly'
+const freqDays: Record<string, number> = {
+  'Daily': 1, 'Weekly': 7, 'Monthly': 30,
+  'Quarterly': 90, 'Bi Annually': 180, 'Annually': 365,
+}
+const nextDue = new Date(now.getTime() + (freqDays[freqToUpdate] || 30) * 86400000)
+
+await supabase.from('pm_schedules')
+  .update({
+    last_done_at: now.toISOString(),
+    next_due_date: nextDue.toISOString().split('T')[0],
+  })
+  .eq('asset_id', selectedAsset)
+  .eq('sub_category', category)
+  .eq('frequency', freqToUpdate)
+
+setSaved(true)
+setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
   }
 
   return (

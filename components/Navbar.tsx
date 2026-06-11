@@ -10,11 +10,12 @@ export default function Navbar() {
     window.location.href = '/login'
   }
 
-  const links = [
-    { href: '/dashboard', label: '🏠 Dashboard' },
-    { href: '/assets', label: '📋 Asset' },
-    { href: '/checklist', label: '✅ Checklist' },
-    { href: '/history', label: '🕐 Riwayat' },
+ const links = [
+  { href: '/dashboard', label: '🏠 Dashboard' },
+  { href: '/assets', label: '📋 Asset' },
+  { href: '/checklist', label: '✅ Checklist' },
+  { href: '/pm-schedule', label: '📅 PM Schedule' },
+  { href: '/history', label: '🕐 Riwayat' },
   ]
 
   return (
