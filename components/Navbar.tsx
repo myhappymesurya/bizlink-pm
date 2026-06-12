@@ -15,6 +15,8 @@ export default function Navbar() {
   { href: '/assets', label: '📋 Asset' },
   { href: '/checklist', label: '✅ Checklist' },
   { href: '/pm-schedule', label: '📅 PM Schedule' },
+  { href: '/meter-record', label: '🔢 Meter Record' },
+  { href: '/running-hours', label: '⏱️ Running Hours' },
   { href: '/history', label: '🕐 Riwayat' },
   ]
 
