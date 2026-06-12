@@ -14,12 +14,12 @@ type Schedule = {
 }
 
 const FREQ_DAYS: Record<string, number> = {
-  'Daily': 1, 'Weekly': 7, 'Monthly': 30,
+  'Daily': 1, 'Weekly': 7, 'Bi Weekly': 14, 'Monthly': 30,
   'Quarterly': 90, 'Bi Annually': 180, 'Annually': 365,
 }
 
 const CATEGORIES_MAP: Record<string, string[]> = {
-  'Fire Safety': ['Fire Extinguisher','Fire Hydrant','Emergency Door','Smoke & Heat Detector','Evacuation Lamp'],
+  'Fire Safety': ['Fire Extinguisher','Fire Hydrant','Emergency Door','Smoke & Heat Detector','Evacuation Lamp','Pompa Pemadam Kebakaran'],
   'HVAC': ['AC Single Split','AC Cassette','AC Single Split Duct Type','AC Multi Split Duct Type','AC Package','Cooling Tower','Exhaust Fan','Adsorption Tower'],
   'Electrical': ['Panel Listrik'],
   'Mechanical': ['Air Compressor','Air Dryer','Pompa Distribusi CT 2 Cell','Pompa Distribusi CT 1 Cell','Pompa Supply CT','Pompa Booster'],
@@ -56,7 +56,6 @@ export default function PMSchedulePage() {
     setLoading(true)
     let query = supabase.from('pm_schedules')
       .select('*, assets(location)')
-      .eq('is_active', true)
       .order('sub_category')
 
     if (subCategory) query = query.eq('sub_category', subCategory)
@@ -140,7 +139,7 @@ export default function PMSchedulePage() {
           <select value={frequency} onChange={e => setFrequency(e.target.value)}
             style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}>
             <option value="">Semua Frekuensi</option>
-            {['Daily','Weekly','Monthly','Quarterly','Bi Annually','Annually'].map(f =>
+            {['Daily','Weekly','Bi Weekly','Monthly','Quarterly','Bi Annually','Annually'].map(f =>
               <option key={f} value={f}>{f}</option>)}
           </select>
 
