@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { INSPECTOR_OPTIONS } from '@/lib/constants'
+import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
 
 type MeterField = { key: string; label: string; auto?: boolean }
@@ -66,8 +68,6 @@ const METERS: MeterConfig[] = [
   }
 ]
 
-const INSPECTORS = ['Suwarsono', 'Tenang Riatman', 'Other']
-
 export default function MeterRecordPage() {
   const [selectedId, setSelectedId] = useState(METERS[0].id)
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0])
@@ -78,6 +78,7 @@ export default function MeterRecordPage() {
   const [existingRecord, setExistingRecord] = useState<{ inspector: string; submitted_at: string } | null>(null)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const tableRef = useRef<HTMLDivElement>(null)
 
   const meter = METERS.find(m => m.id === selectedId)!
 
@@ -191,9 +192,15 @@ export default function MeterRecordPage() {
         </div>
 
         {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-900">{meter.icon} {meter.name}</h1>
-          <p className="text-sm text-gray-500">Frekuensi: {meter.freqLabel}</p>
+        <div className="mb-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">{meter.icon} {meter.name}</h1>
+            <p className="text-sm text-gray-500">Frekuensi: {meter.freqLabel}</p>
+          </div>
+          <button onClick={() => exportTablePDF('table-meter-records', 'Meter-Records', `${meter.name} Records`)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+            📥 Export PDF
+          </button>
         </div>
 
         {/* Duplicate Warning */}
@@ -206,9 +213,6 @@ export default function MeterRecordPage() {
             <p className="text-sm text-gray-600">
               PIC: <strong>{existingRecord.inspector}</strong> · Waktu:{' '}
               {new Date(existingRecord.submitted_at).toLocaleString('id-ID')} · Status: ✓ OK
-            </p>
-            <p className="text-xs text-amber-600 mt-2">
-              ⚠️ Submit lagi akan membuat data duplikat. Pastikan ini memang perlu diisi ulang.
             </p>
           </div>
         )}
@@ -279,7 +283,7 @@ export default function MeterRecordPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
           <h2 className="font-semibold text-gray-800 mb-3">👤 Inspector</h2>
           <div className="grid grid-cols-3 gap-2">
-            {INSPECTORS.map(name => (
+            {INSPECTOR_OPTIONS.map(name => (
               <button
                 key={name}
                 type="button"
@@ -298,7 +302,7 @@ export default function MeterRecordPage() {
 
         {/* Error */}
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-3">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
             <p className="text-red-700 text-sm">❌ {error}</p>
           </div>
         )}
@@ -318,8 +322,16 @@ export default function MeterRecordPage() {
             disabled={loading}
             className="px-6 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? 'Menyimpan...' : '✓ Submit Checklist'}
+            {loading ? 'Menyimpan...' : '✓ Submit'}
           </button>
+        </div>
+
+        {/* Table */}
+        <div ref={tableRef} id="table-meter-records" className="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 className="font-semibold text-gray-800 mb-3">📊 Riwayat</h3>
+          <div className="text-xs text-gray-600">
+            <p>Data akan tampil setelah submit</p>
+          </div>
         </div>
 
       </div>

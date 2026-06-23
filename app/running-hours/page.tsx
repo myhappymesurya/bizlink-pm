@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { INSPECTOR_OPTIONS } from '@/lib/constants'
+import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
 
 type MeasurementField = { key: string; label: string; placeholder?: string }
@@ -184,8 +186,6 @@ const EQUIPMENT: EquipmentConfig[] = [
   }
 ]
 
-const INSPECTORS = ['Suwarsono', 'Tenang Riatman', 'Other']
-
 function formatDuration(ms: number) {
   const totalMinutes = Math.floor(ms / 60000)
   const hours = Math.floor(totalMinutes / 60)
@@ -218,6 +218,7 @@ export default function RunningHoursPage() {
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const tableRef = useRef<HTMLDivElement>(null)
 
   const config = EQUIPMENT.find(e => e.id === equipType)!
 
@@ -328,11 +329,11 @@ export default function RunningHoursPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 py-6">
 
         {/* Selector */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Tipe Equipment</label>
               <select value={equipType} onChange={e => setEquipType(e.target.value)}
@@ -347,6 +348,10 @@ export default function RunningHoursPage() {
                 {config.units.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
+            <button onClick={() => exportTablePDF('table-running-hours', 'Running-Hours', `${config.name} Logs`)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+              📥 Export PDF
+            </button>
           </div>
         </div>
 
@@ -356,161 +361,175 @@ export default function RunningHoursPage() {
           <p className="text-sm text-gray-500">Frekuensi: Harian</p>
         </div>
 
-        {/* Phase Indicator */}
-        <div className="flex gap-2 mb-4">
-          <div className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium text-center ${phase === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-            ▶ Phase 1 — Isi Saat Mesin ON
+        <div className="grid grid-cols-3 gap-4">
+          {/* Form */}
+          <div className="col-span-2 space-y-4">
+            {/* Phase Indicator */}
+            <div className="flex gap-2">
+              <div className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium text-center ${phase === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                ▶ Phase 1 — Isi Saat Mesin ON
+              </div>
+              <div className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium text-center ${phase === 2 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                ■ Phase 2 — Konfirmasi OFF
+              </div>
+            </div>
+
+            {checking && <div className="text-center py-12 text-gray-400 text-sm">Mengecek status...</div>}
+
+            {/* DONE */}
+            {!checking && phase === 'done' && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+                <div className="text-4xl mb-3">✅</div>
+                <h2 className="text-lg font-bold text-green-700 mb-2">Selesai Hari Ini</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  ON: <strong>{formatTime(currentLog!.phase1_at!)}</strong> &nbsp;→&nbsp; OFF: <strong>{formatTime(currentLog!.phase2_at!)}</strong>
+                </p>
+                <div className="bg-white rounded-xl border border-green-200 p-4">
+                  <p className="text-xs text-gray-500 mb-1">Total Running Hours</p>
+                  <p className="text-3xl font-bold text-green-600">{runningHours}</p>
+                </div>
+                <p className="text-xs text-gray-400 mt-3">Inspector: {currentLog!.phase1_inspector}</p>
+              </div>
+            )}
+
+            {/* PHASE 2 */}
+            {!checking && phase === 2 && (
+              <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+                  <span className="text-3xl">🟢</span>
+                  <div>
+                    <p className="font-semibold text-amber-800">Mesin Sedang ON</p>
+                    <p className="text-sm text-gray-600">
+                      Dinyalakan pukul <strong>{formatTime(currentLog!.phase1_at!)}</strong> oleh <strong>{currentLog!.phase1_inspector}</strong>
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <h2 className="font-semibold text-gray-800 mb-2">■ Phase 2 — Konfirmasi Mesin OFF</h2>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Tekan tombol ini saat mesin sudah dimatikan. Sistem akan mencatat waktu OFF dan menghitung running hours otomatis.
+                  </p>
+                  {error && <div className="mb-3 bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-red-700 text-sm">❌ {error}</p></div>}
+                  <button onClick={handlePhase2Submit} disabled={loading}
+                    className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors">
+                    {loading ? 'Menyimpan...' : '■ Konfirmasi Mesin OFF'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* PHASE 1 */}
+            {!checking && phase === 1 && (
+              <div className="space-y-4">
+                {/* Informasi Umum */}
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <h2 className="font-semibold text-gray-800 mb-3">📋 Informasi Umum</h2>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Operasi *</label>
+                      <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    {config.extraFields.map(field => (
+                      <div key={field.key}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{field.label} *</label>
+                        <select value={extraFields[field.key] || ''} onChange={e => setExtraFields(p => ({ ...p, [field.key]: e.target.value }))}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          <option value="">Pilih...</option>
+                          {field.options.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Poin Pemeriksaan */}
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <h2 className="font-semibold text-gray-800 mb-3">✅ Poin Pemeriksaan</h2>
+                  <div className="space-y-2">
+                    {config.checklist.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
+                        <span className="text-sm text-gray-700 flex-1">
+                          <span className="text-gray-400 mr-2">{i + 1}</span>{item}
+                        </span>
+                        <div className="flex gap-2 shrink-0">
+                          <button type="button" onClick={() => setChecklist(p => ({ ...p, [i]: 'yes' }))}
+                            className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${checklist[i] === 'yes' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-300 hover:bg-green-50'}`}>
+                            ✓ Yes
+                          </button>
+                          <button type="button" onClick={() => setChecklist(p => ({ ...p, [i]: 'no' }))}
+                            className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${checklist[i] === 'no' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-500 border-gray-300 hover:bg-red-50'}`}>
+                            ✗ No
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Data & Pengukuran */}
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <h2 className="font-semibold text-gray-800 mb-3">📊 Data & Pengukuran</h2>
+                  <div className="space-y-3">
+                    {config.measurements.map(field => (
+                      <div key={field.key} className="flex items-center justify-between gap-4">
+                        <span className="text-sm text-gray-700 flex-1">{field.label}</span>
+                        <input type="number" value={measurements[field.key] || ''} placeholder={field.placeholder || '0'}
+                          onChange={e => setMeasurements(p => ({ ...p, [field.key]: e.target.value }))}
+                          className="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" step="any" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Keterangan */}
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <h2 className="font-semibold text-gray-800 mb-3">💬 {config.notesLabel}</h2>
+                  <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+                    placeholder="Tuliskan catatan, temuan, atau masalah yang ditemukan..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                </div>
+
+                {/* Inspector */}
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <h2 className="font-semibold text-gray-800 mb-3">👤 Operator / Inspector</h2>
+                  <div className="grid grid-cols-3 gap-2">
+                    {INSPECTOR_OPTIONS.map(name => (
+                      <button key={name} type="button" onClick={() => setInspector(name)}
+                        className={`py-2 px-2 rounded-lg text-sm font-medium border transition-colors ${inspector === name ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3"><p className="text-red-700 text-sm">❌ {error}</p></div>}
+                {success && <div className="bg-blue-50 border border-blue-200 rounded-xl p-3"><p className="text-blue-700 text-sm">✅ {success}</p></div>}
+
+                <div className="flex gap-3 justify-end">
+                  <button type="button" onClick={resetInputs}
+                    className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
+                    Reset
+                  </button>
+                  <button type="button" onClick={handlePhase1Submit} disabled={loading}
+                    className="px-6 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors">
+                    {loading ? 'Menyimpan...' : '▶ Submit Phase 1 — Mesin ON'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <div className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium text-center ${phase === 2 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-            ■ Phase 2 — Konfirmasi OFF
+
+          {/* Logs List */}
+          <div className="col-span-1">
+            <div ref={tableRef} id="table-running-hours" className="bg-white rounded-xl border border-gray-200 p-4 sticky top-4">
+              <h3 className="font-semibold text-gray-800 mb-3 text-sm">📊 Riwayat</h3>
+              <div className="text-xs text-gray-600">
+                <p>Data akan tampil setelah submit</p>
+              </div>
+            </div>
           </div>
         </div>
-
-        {checking && <div className="text-center py-12 text-gray-400 text-sm">Mengecek status...</div>}
-
-        {/* DONE */}
-        {!checking && phase === 'done' && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-            <div className="text-4xl mb-3">✅</div>
-            <h2 className="text-lg font-bold text-green-700 mb-2">Selesai Hari Ini</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              ON: <strong>{formatTime(currentLog!.phase1_at!)}</strong> &nbsp;→&nbsp; OFF: <strong>{formatTime(currentLog!.phase2_at!)}</strong>
-            </p>
-            <div className="bg-white rounded-xl border border-green-200 p-4">
-              <p className="text-xs text-gray-500 mb-1">Total Running Hours</p>
-              <p className="text-3xl font-bold text-green-600">{runningHours}</p>
-            </div>
-            <p className="text-xs text-gray-400 mt-3">Inspector: {currentLog!.phase1_inspector}</p>
-          </div>
-        )}
-
-        {/* PHASE 2 */}
-        {!checking && phase === 2 && (
-          <div className="space-y-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-              <span className="text-3xl">🟢</span>
-              <div>
-                <p className="font-semibold text-amber-800">Mesin Sedang ON</p>
-                <p className="text-sm text-gray-600">
-                  Dinyalakan pukul <strong>{formatTime(currentLog!.phase1_at!)}</strong> oleh <strong>{currentLog!.phase1_inspector}</strong>
-                </p>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-800 mb-2">■ Phase 2 — Konfirmasi Mesin OFF</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Tekan tombol ini saat mesin sudah dimatikan. Sistem akan mencatat waktu OFF dan menghitung running hours otomatis.
-              </p>
-              {error && <div className="mb-3 bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-red-700 text-sm">❌ {error}</p></div>}
-              <button onClick={handlePhase2Submit} disabled={loading}
-                className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors">
-                {loading ? 'Menyimpan...' : '■ Konfirmasi Mesin OFF'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* PHASE 1 */}
-        {!checking && phase === 1 && (
-          <div className="space-y-4">
-
-            {/* Informasi Umum */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-800 mb-3">📋 Informasi Umum</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Operasi *</label>
-                  <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                </div>
-                {config.extraFields.map(field => (
-                  <div key={field.key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{field.label} *</label>
-                    <select value={extraFields[field.key] || ''} onChange={e => setExtraFields(p => ({ ...p, [field.key]: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="">Pilih...</option>
-                      {field.options.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Poin Pemeriksaan */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-800 mb-3">✅ Poin Pemeriksaan</h2>
-              <div className="space-y-2">
-                {config.checklist.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
-                    <span className="text-sm text-gray-700 flex-1">
-                      <span className="text-gray-400 mr-2">{i + 1}</span>{item}
-                    </span>
-                    <div className="flex gap-2 shrink-0">
-                      <button type="button" onClick={() => setChecklist(p => ({ ...p, [i]: 'yes' }))}
-                        className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${checklist[i] === 'yes' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-300 hover:bg-green-50'}`}>
-                        ✓ Yes
-                      </button>
-                      <button type="button" onClick={() => setChecklist(p => ({ ...p, [i]: 'no' }))}
-                        className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${checklist[i] === 'no' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-500 border-gray-300 hover:bg-red-50'}`}>
-                        ✗ No
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Data & Pengukuran */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-800 mb-3">📊 Data & Pengukuran</h2>
-              <div className="space-y-3">
-                {config.measurements.map(field => (
-                  <div key={field.key} className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-gray-700 flex-1">{field.label}</span>
-                    <input type="number" value={measurements[field.key] || ''} placeholder={field.placeholder || '0'}
-                      onChange={e => setMeasurements(p => ({ ...p, [field.key]: e.target.value }))}
-                      className="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" step="any" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Keterangan */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-800 mb-3">💬 {config.notesLabel}</h2>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-                placeholder="Tuliskan catatan, temuan, atau masalah yang ditemukan..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-            </div>
-
-            {/* Inspector */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-800 mb-3">👤 Operator / Inspector</h2>
-              <div className="grid grid-cols-3 gap-2">
-                {INSPECTORS.map(name => (
-                  <button key={name} type="button" onClick={() => setInspector(name)}
-                    className={`py-2 px-2 rounded-lg text-sm font-medium border transition-colors ${inspector === name ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>
-                    {name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3"><p className="text-red-700 text-sm">❌ {error}</p></div>}
-            {success && <div className="bg-blue-50 border border-blue-200 rounded-xl p-3"><p className="text-blue-700 text-sm">✅ {success}</p></div>}
-
-            <div className="flex gap-3 justify-end pb-8">
-              <button type="button" onClick={resetInputs}
-                className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
-                Reset
-              </button>
-              <button type="button" onClick={handlePhase1Submit} disabled={loading}
-                className="px-6 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors">
-                {loading ? 'Menyimpan...' : '▶ Submit Phase 1 — Mesin ON'}
-              </button>
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
