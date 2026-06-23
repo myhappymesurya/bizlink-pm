@@ -1,87 +1,81 @@
-cat > app/dashboard/page.tsx << 'ENDOFFILE'
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import Navbar from '@/components/Navbar'
 
-export default function DashboardPage() {
+export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
-  const [counts, setCounts] = useState({ fe: 0, hydrant: 0, ac: 0, panel: 0 })
-  const [submissions, setSubmissions] = useState({ ok: 0, nok: 0, approved: 0 })
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email || ''))
-    loadCounts()
-    loadSubmissions()
-  }, [])
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) router.push('/dashboard')
+    })
+  }, [router])
 
-  async function loadCounts() {
-    const [fe, hydrant, ac, panel] = await Promise.all([
-      supabase.from('assets').select('id', { count: 'exact' }).eq('sub_category', 'Fire Extinguisher'),
-      supabase.from('assets').select('id', { count: 'exact' }).eq('sub_category', 'Fire Hydrant'),
-      supabase.from('assets').select('id', { count: 'exact' }).eq('sub_category', 'AC Single Split'),
-      supabase.from('assets').select('id', { count: 'exact' }).eq('sub_category', 'Panel Listrik'),
-    ])
-    setCounts({ fe: fe.count||0, hydrant: hydrant.count||0, ac: ac.count||0, panel: panel.count||0 })
+  async function handleLogin() {
+    setError('')
+    setLoading(true)
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (signInError) {
+      setError(signInError.message)
+      setLoading(false)
+      return
+    }
+    router.push('/dashboard')
   }
-
-  async function loadSubmissions() {
-    const [ok, nok, approved] = await Promise.all([
-      supabase.from('checklist_submissions').select('id', { count: 'exact' }).eq('status', 'ok'),
-      supabase.from('checklist_submissions').select('id', { count: 'exact' }).eq('status', 'nok'),
-      supabase.from('checklist_submissions').select('id', { count: 'exact' }).eq('status', 'approved'),
-    ])
-    setSubmissions({ ok: ok.count||0, nok: nok.count||0, approved: approved.count||0 })
-  }
-
-  const assetCards = [
-    { label: 'Fire Extinguisher', icon: '🧯', count: counts.fe, color: '#fff3f3' },
-    { label: 'Fire Hydrant', icon: '💧', count: counts.hydrant, color: '#f0f8ff' },
-    { label: 'AC Single Split', icon: '❄️', count: counts.ac, color: '#f0fff4' },
-    { label: 'Panel Listrik', icon: '⚡', count: counts.panel, color: '#fffbf0' },
-  ]
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      <Navbar />
-      <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '8px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>Selamat datang 👋</h2>
-          <p style={{ color: '#888', fontSize: '13px', margin: '4px 0 0' }}>{email}</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' }}>
+      <div style={{ background: 'white', padding: '48px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px', textAlign: 'center' }}>BizLink PM</h1>
+        <p style={{ color: '#666', fontSize: '14px', marginBottom: '32px', textAlign: 'center' }}>Preventive Maintenance System</p>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px', color: '#333' }}>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+          />
         </div>
 
-        <h3 style={{ fontSize: '14px', color: '#666', marginTop: '24px', marginBottom: '12px' }}>Asset Terdaftar</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '24px' }}>
-          {assetCards.map(card => (
-            <div key={card.label} style={{ background: 'white', padding: '20px',
-              borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: '28px', background: card.color, borderRadius: '10px', padding: '8px' }}>{card.icon}</div>
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: 700 }}>{card.count}</div>
-                <div style={{ color: '#666', fontSize: '11px' }}>{card.label}</div>
-              </div>
-            </div>
-          ))}
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px', color: '#333' }}>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="••••••••"
+            style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+          />
         </div>
 
-        <h3 style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>Status PM Checklist</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
-          {[
-            { label: 'OK', count: submissions.ok, color: '#22c55e', bg: '#f0fdf4' },
-            { label: 'NOK', count: submissions.nok, color: '#ef4444', bg: '#fff1f2' },
-            { label: 'Approved', count: submissions.approved, color: '#3b82f6', bg: '#eff6ff' },
-          ].map(s => (
-            <div key={s.label} style={{ background: 'white', padding: '20px',
-              borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: '28px', background: s.bg, borderRadius: '10px', padding: '8px', minWidth: '48px', textAlign: 'center', color: s.color, fontWeight: 700 }}>{s.count}</div>
-              <div style={{ color: '#555', fontSize: '13px', fontWeight: 500 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
+        {error && (
+          <div style={{ background: '#fff1f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          onClick={handleLogin}
+          disabled={loading}
+          style={{ width: '100%', padding: '12px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+
+        <p style={{ marginTop: '20px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
+          Demo: Use test account dari Supabase
+        </p>
       </div>
     </div>
   )
 }
-ENDOFFILE

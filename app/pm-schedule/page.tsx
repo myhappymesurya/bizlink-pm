@@ -1,6 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { CATEGORIES_MAP, FREQ_DAYS } from '@/lib/constants'
+import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
 
 type Schedule = {
@@ -13,22 +15,10 @@ type Schedule = {
   location: string
 }
 
-const FREQ_DAYS: Record<string, number> = {
-  'Daily': 1, 'Weekly': 7, 'Bi Weekly': 14, 'Monthly': 30,
-  'Quarterly': 90, 'Bi Annually': 180, 'Annually': 365,
-}
-
-const CATEGORIES_MAP: Record<string, string[]> = {
-  'Fire Safety': ['Fire Extinguisher','Fire Hydrant','Emergency Door','Smoke & Heat Detector','Evacuation Lamp','Pompa Pemadam Kebakaran'],
-  'HVAC': ['AC Single Split','AC Cassette','AC Single Split Duct Type','AC Multi Split Duct Type','AC Package','Cooling Tower','Exhaust Fan','Adsorption Tower'],
-  'Electrical': ['Panel Listrik'],
-  'Mechanical': ['Air Compressor','Air Dryer','Pompa Distribusi CT 2 Cell','Pompa Distribusi CT 1 Cell','Pompa Supply CT','Pompa Booster'],
-}
-
 function getStatus(s: Schedule) {
   if (!s.last_done_at) return 'pending'
   const days = Math.floor((Date.now() - new Date(s.last_done_at).getTime()) / 86400000)
-  const expected = FREQ_DAYS[s.frequency] || 30
+  const expected = FREQ_DAYS[s.frequency as keyof typeof FREQ_DAYS] || 30
   if (days <= expected) return 'done'
   if (days <= expected + 7) return 'due'
   return 'overdue'
@@ -36,7 +26,7 @@ function getStatus(s: Schedule) {
 
 function getNextDue(s: Schedule) {
   if (!s.last_done_at) return '—'
-  const expected = FREQ_DAYS[s.frequency] || 30
+  const expected = FREQ_DAYS[s.frequency as keyof typeof FREQ_DAYS] || 30
   const next = new Date(new Date(s.last_done_at).getTime() + expected * 86400000)
   return next.toLocaleDateString('id-ID')
 }
@@ -48,6 +38,7 @@ export default function PMSchedulePage() {
   const [subCategory, setSubCategory] = useState('')
   const [frequency, setFrequency] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { loadSchedules() }, [category, subCategory, frequency])
   useEffect(() => { setSubCategory('') }, [category])
@@ -89,7 +80,7 @@ export default function PMSchedulePage() {
       overdue: { bg: '#fff1f2', color: '#ef4444', label: '🔴 Overdue' },
       pending: { bg: '#f5f5f5', color: '#888', label: '— Belum pernah' },
     }
-    const m = map[st]
+    const m = map[st as keyof typeof map]
     return <span style={{ background: m.bg, color: m.color, padding: '3px 10px',
       borderRadius: '20px', fontSize: '12px', fontWeight: 500 }}>{m.label}</span>
   }
@@ -98,7 +89,15 @@ export default function PMSchedulePage() {
     <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
       <Navbar />
       <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}>PM Schedule</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>PM Schedule</h1>
+          <button onClick={() => exportTablePDF('table-pm-schedule', 'PM-Schedule', 'PM Schedule')}
+            style={{ padding: '8px 18px', background: '#1a73e8', color: 'white',
+              border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px',
+              fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            📥 Export PDF
+          </button>
+        </div>
 
         {/* Overview cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '24px' }}>
@@ -132,7 +131,7 @@ export default function PMSchedulePage() {
             <select value={subCategory} onChange={e => setSubCategory(e.target.value)}
               style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}>
               <option value="">Semua Sub-kategori</option>
-              {CATEGORIES_MAP[category].map(s => <option key={s} value={s}>{s}</option>)}
+              {CATEGORIES_MAP[category as keyof typeof CATEGORIES_MAP].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           )}
 
@@ -162,7 +161,7 @@ export default function PMSchedulePage() {
         </div>
 
         {/* Table */}
-        <div style={{ background: 'white', borderRadius: '12px',
+        <div ref={printRef} id="table-pm-schedule" style={{ background: 'white', borderRadius: '12px',
           boxShadow: '0 2px 16px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
