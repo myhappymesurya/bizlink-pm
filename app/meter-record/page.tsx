@@ -138,6 +138,7 @@ export default function MeterRecordPage() {
 
     setLoading(true)
     try {
+      const userId = (await supabase.auth.getUser()).data.user?.id
       const { error: insertError } = await supabase.from('meter_records').insert({
         meter_id: selectedId,
         meter_name: meter.name,
@@ -149,6 +150,7 @@ export default function MeterRecordPage() {
         total: readings['total'] ? parseFloat(readings['total']) : null,
         notes: meter.hasNotes ? (notes || null) : null,
         inspector,
+        user_id: userId,
         submitted_at: new Date().toISOString()
       })
       if (insertError) throw insertError

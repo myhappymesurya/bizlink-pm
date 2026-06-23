@@ -1,6 +1,3 @@
-// lib/exportPDF.ts
-import html2pdf from 'html2pdf.js'
-
 export function exportTablePDF(
   elementId: string,
   fileName: string,
@@ -20,5 +17,5 @@ export function exportTablePDF(
     jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
   }
 
-  html2pdf().set(opt).from(element).save()
+  ;(window as any).html2pdf().set(opt).from(element).save()
 }

@@ -278,6 +278,7 @@ export default function RunningHoursPage() {
 
     setLoading(true)
     try {
+      const userId = (await supabase.auth.getUser()).data.user?.id
       const checklistData = config.checklist.map((label, i) => ({ label, result: checklist[i] }))
       const measurementsData: Record<string, number | null> = {}
       config.measurements.forEach(m => {
@@ -289,6 +290,7 @@ export default function RunningHoursPage() {
         tanggal,
         phase1_at: new Date().toISOString(),
         phase1_inspector: inspector,
+        user_id: userId,
         checklist: checklistData,
         measurements: measurementsData,
         extra_fields: Object.keys(extraFields).length ? extraFields : null,

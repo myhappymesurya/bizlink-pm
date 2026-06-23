@@ -425,6 +425,7 @@ export default function ChecklistPage() {
 
     const { data: sub, error } = await supabase.from('checklist_submissions').insert({
       asset_id: selectedAsset,
+      user_id: (await supabase.auth.getUser()).data.user?.id,
       category: cat,
       sub_category: category,
       status: allChecked ? 'ok' : 'nok',
