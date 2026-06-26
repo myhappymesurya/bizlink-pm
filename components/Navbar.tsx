@@ -1,6 +1,17 @@
+'use client'
+
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 export default function Navbar() {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   return (
     <nav style={{
       background: 'var(--primary)',
@@ -80,6 +91,20 @@ export default function Navbar() {
           }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
             History
           </Link>
+          <button onClick={handleLogout} style={{
+            color: 'white',
+            background: 'rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: 500,
+            padding: '8px 12px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'background 0.2s'
+          }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'} onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}>
+            Logout
+          </button>
         </div>
       </div>
     </nav>
