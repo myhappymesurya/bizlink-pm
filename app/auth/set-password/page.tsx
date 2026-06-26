@@ -1,0 +1,117 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+
+export default function SetPasswordPage() {
+  const router = useRouter()
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  useEffect(() => {
+    // Pastikan ada session aktif dari link recovery
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        setError('Link tidak valid atau sudah expired. Hubungi admin untuk dikirim ulang.')
+      }
+      setCheckingSession(false)
+    })
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (password.length < 8) {
+      setError('Password minimal 8 karakter')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Password tidak cocok')
+      return
+    }
+
+    setLoading(true)
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+    setLoading(false)
+
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+
+    router.push('/dashboard')
+  }
+
+  if (checkingSession) {
+    return <div style={{ padding: 40, textAlign: 'center' }}>Memuat...</div>
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#f5f6f7'
+    }}>
+      <div style={{
+        background: 'white',
+        padding: 40,
+        borderRadius: 8,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        width: 360
+      }}>
+        <h2 style={{ color: '#0a3047', marginBottom: 8 }}>Buat Password Anda</h2>
+        <p style={{ color: '#7f8c8d', fontSize: 14, marginBottom: 24 }}>
+          Ini login pertama Anda. Buat password baru untuk akun Anda.
+        </p>
+
+        {error && (
+          <div style={{ background: '#fdecea', color: '#e74c3c', padding: 12, borderRadius: 4, marginBottom: 16, fontSize: 14 }}>
+            {error}
+          </div>
+        )}
+
+        {!error.includes('expired') && (
+          <form onSubmit={handleSubmit}>
+            <input
+              type="password"
+              placeholder="Password baru"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ width: '100%', padding: 10, marginBottom: 12, border: '1px solid #ddd', borderRadius: 4 }}
+            />
+            <input
+              type="password"
+              placeholder="Konfirmasi password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              style={{ width: '100%', padding: 10, marginBottom: 16, border: '1px solid #ddd', borderRadius: 4 }}
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: 12,
+                background: '#0a3047',
+                color: 'white',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              {loading ? 'Menyimpan...' : 'Simpan Password'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
