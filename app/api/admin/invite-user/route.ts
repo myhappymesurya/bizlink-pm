@@ -9,6 +9,32 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    // 0. Cek pemanggil API ini harus admin yang sah
+    const authHeader = request.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: callerData, error: callerError } = await supabaseAdmin.auth.getUser(token)
+    if (callerError || !callerData.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: callerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', callerData.user.id)
+      .single()
+
+    if (callerProfile?.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Hanya admin yang bisa mengundang user' },
+        { status: 403 }
+      )
+    }
+
+    // 1. Validasi input
     const { email, full_name, role } = await request.json()
 
     if (!email || !full_name || !role) {
@@ -18,17 +44,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (role !== 'admin' && role !== 'technician') {
+    const validRoles = ['admin', 'supervisor', 'technician', 'viewer']
+    if (!validRoles.includes(role)) {
       return NextResponse.json(
-        { error: 'Role harus admin atau technician' },
+        { error: 'Role tidak valid' },
         { status: 400 }
       )
     }
 
-    // Generate temporary password (user akan ganti sendiri lewat link)
+    // 2. Create user di Supabase Auth
     const tempPassword = Math.random().toString(36).slice(-12) + 'A1!'
 
-    // 1. Create user di Supabase Auth
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,
@@ -42,7 +68,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Insert ke profiles
+    // 3. Insert ke profiles
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
@@ -51,7 +77,7 @@ export async function POST(request: NextRequest) {
         role,
       })
 
-   if (profileError) {
+    if (profileError) {
       const { error: rollbackError } = await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
       if (rollbackError) {
         console.error('ROLLBACK GAGAL:', rollbackError.message)
@@ -62,7 +88,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Generate password reset link (ini yang dipakai sebagai "invite link")
+    // 4. Generate invite link (recovery type, redirect ke set-password)
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email,
@@ -80,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     const inviteLink = linkData.properties?.action_link
 
-    // 4. Kirim email via Gmail SMTP
+    // 5. Kirim email via Gmail SMTP
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {

@@ -120,6 +120,20 @@ export default function Navbar() {
             History
           </Link>
 
+          {userInfo?.role === 'admin' && (
+            <Link href="/admin/users" style={{
+              color: 'white',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: 500,
+              padding: '8px 12px',
+              borderRadius: '4px',
+              transition: 'background 0.2s'
+            }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+              Users
+            </Link>
+          )}
+
           {userInfo && (
             <div style={{
               display: 'flex',
