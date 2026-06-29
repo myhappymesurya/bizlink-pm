@@ -40,6 +40,20 @@ export default function Navbar() {
     viewer: '#7f8c8d',
   }
 
+  const navLinkStyle = {
+    color: 'white',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontWeight: 500,
+    padding: '8px 12px',
+    borderRadius: '4px',
+    transition: 'background 0.2s'
+  }
+
+  const handleHover = (e: React.MouseEvent<HTMLAnchorElement>, entering: boolean) => {
+    e.currentTarget.style.background = entering ? 'rgba(255,255,255,0.1)' : 'transparent'
+  }
+
   return (
     <nav style={{
       background: 'var(--primary)',
@@ -55,7 +69,9 @@ export default function Navbar() {
         margin: '0 auto',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '8px'
       }}>
         <Link href="/" style={{
           fontSize: '20px',
@@ -72,64 +88,34 @@ export default function Navbar() {
 
         <div style={{
           display: 'flex',
-          gap: '24px',
-          alignItems: 'center'
+          gap: '16px',
+          alignItems: 'center',
+          flexWrap: 'wrap'
         }}>
-          <Link href="/dashboard" style={{
-            color: 'white',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: 500,
-            padding: '8px 12px',
-            borderRadius: '4px',
-            transition: 'background 0.2s'
-          }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+          <Link href="/dashboard" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             Dashboard
           </Link>
-          <Link href="/assets" style={{
-            color: 'white',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: 500,
-            padding: '8px 12px',
-            borderRadius: '4px',
-            transition: 'background 0.2s'
-          }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+          <Link href="/assets" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             Assets
           </Link>
-          <Link href="/checklist" style={{
-            color: 'white',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: 500,
-            padding: '8px 12px',
-            borderRadius: '4px',
-            transition: 'background 0.2s'
-          }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+          <Link href="/checklist" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             Checklist
           </Link>
-          <Link href="/history" style={{
-            color: 'white',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: 500,
-            padding: '8px 12px',
-            borderRadius: '4px',
-            transition: 'background 0.2s'
-          }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+          <Link href="/history" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             History
+          </Link>
+          <Link href="/pm-schedule" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+            PM Schedule
+          </Link>
+          <Link href="/meter-record" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+            Meter Record
+          </Link>
+          <Link href="/running-hours" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+            Running Hours
           </Link>
 
           {userInfo?.role === 'admin' && (
-            <Link href="/admin/users" style={{
-              color: 'white',
-              textDecoration: 'none',
-              fontSize: '14px',
-              fontWeight: 500,
-              padding: '8px 12px',
-              borderRadius: '4px',
-              transition: 'background 0.2s'
-            }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+            <Link href="/admin/users" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
               Users
             </Link>
           )}
@@ -162,7 +148,6 @@ export default function Navbar() {
             color: 'white',
             background: 'rgba(255,255,255,0.15)',
             border: '1px solid rgba(255,255,255,0.3)',
-            textDecoration: 'none',
             fontSize: '14px',
             fontWeight: 500,
             padding: '8px 12px',
