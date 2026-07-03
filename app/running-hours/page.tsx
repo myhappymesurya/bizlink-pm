@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import { INSPECTOR_OPTIONS } from '@/lib/constants'
 import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
@@ -205,6 +205,7 @@ type LogRecord = {
 }
 
 export default function RunningHoursPage() {
+  const supabase = createClient()
   const [equipType, setEquipType] = useState(EQUIPMENT[0].id)
   const [equipUnit, setEquipUnit] = useState(EQUIPMENT[0].units[0])
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0])

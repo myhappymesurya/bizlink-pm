@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 
 const CHECKLIST_ITEMS: Record<string, string[]> = {
@@ -364,6 +364,7 @@ const CATEGORIES = [
 type Asset = { id: string; location: string }
 
 export default function ChecklistPage() {
+  const supabase = createClient()
   const [category, setCategory] = useState('Fire Extinguisher')
   const [frequency, setFrequency] = useState('')
   const [assets, setAssets] = useState<Asset[]>([])

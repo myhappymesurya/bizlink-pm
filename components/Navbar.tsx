@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 export default function Navbar() {
+  const supabase = createClient()
   const router = useRouter()
   const [userInfo, setUserInfo] = useState<{ full_name: string; role: string } | null>(null)
 

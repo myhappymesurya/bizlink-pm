@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 
 type Submission = {
@@ -28,6 +28,7 @@ const CATEGORIES_MAP: Record<string, string[]> = {
 }
 
 export default function HistoryPage() {
+  const supabase = createClient()
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState('all')

@@ -1,13 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 type DashboardStats = {
   totalAssets: number
@@ -17,6 +12,7 @@ type DashboardStats = {
 }
 
 export default function DashboardPage() {
+  const supabase = createClient()
   const [stats, setStats] = useState<DashboardStats>({
     totalAssets: 0,
     activeAssets: 0,
@@ -37,12 +33,11 @@ export default function DashboardPage() {
         .limit(1000)
 
       const assets = data || []
-      
       setStats({
         totalAssets: assets.length,
-        activeAssets: assets.filter(a => a.status === 'active').length,
-        expiredAssets: assets.filter(a => a.status === 'expired').length,
-        maintenanceAssets: assets.filter(a => a.status === 'maintenance').length
+        activeAssets: assets.filter((a: any) => a.status === 'active').length,
+        expiredAssets: assets.filter((a: any) => a.status === 'expired').length,
+        maintenanceAssets: assets.filter((a: any) => a.status === 'maintenance').length
       })
     } catch (e) {
       console.error('Error loading stats:', e)
@@ -70,29 +65,10 @@ export default function DashboardPage() {
       alignItems: 'center',
       gap: '16px'
     }}>
-      <div style={{
-        fontSize: '32px',
-        opacity: 0.7
-      }}>
-        {icon}
-      </div>
+      <div style={{ fontSize: '32px', opacity: 0.7 }}>{icon}</div>
       <div>
-        <p style={{
-          color: 'var(--text-secondary)',
-          fontSize: '12px',
-          margin: 0,
-          marginBottom: '4px'
-        }}>
-          {title}
-        </p>
-        <p style={{
-          fontSize: '28px',
-          fontWeight: 700,
-          color: 'var(--primary)',
-          margin: 0
-        }}>
-          {value}
-        </p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0, marginBottom: '4px' }}>{title}</p>
+        <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>{value}</p>
       </div>
     </div>
   )
@@ -100,25 +76,16 @@ export default function DashboardPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Navbar />
-
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 24px' }}>
-        {/* Header */}
         <div style={{ marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: 700, color: 'var(--primary)', marginBottom: '8px' }}>
-            Dashboard
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Overview of your preventive maintenance system
-          </p>
+          <h1 style={{ fontSize: '32px', fontWeight: 700, color: 'var(--primary)', marginBottom: '8px' }}>Dashboard</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Overview of your preventive maintenance system</p>
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '48px' }}>
-            Loading dashboard...
-          </div>
+          <div style={{ textAlign: 'center', padding: '48px' }}>Loading dashboard...</div>
         ) : (
           <>
-            {/* KPI Cards */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
@@ -131,25 +98,13 @@ export default function DashboardPage() {
               <KPICard title="In Maintenance" value={stats.maintenanceAssets} icon="🔧" color="var(--warning)" />
             </div>
 
-            {/* Charts */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
               gap: '24px'
             }}>
-              {/* Status Distribution */}
-              <div style={{
-                background: 'var(--bg-card)',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: 'var(--shadow)'
-              }}>
-                <h3 style={{
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: 'var(--primary)',
-                  marginBottom: '20px'
-                }}>
+              <div style={{ background: 'var(--bg-card)', padding: '24px', borderRadius: '8px', boxShadow: 'var(--shadow)' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px' }}>
                   Asset Status Distribution
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -173,52 +128,24 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               </div>
 
-              {/* Quick Stats */}
-              <div style={{
-                background: 'var(--bg-card)',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: 'var(--shadow)'
-              }}>
-                <h3 style={{
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: 'var(--primary)',
-                  marginBottom: '20px'
-                }}>
+              <div style={{ background: 'var(--bg-card)', padding: '24px', borderRadius: '8px', boxShadow: 'var(--shadow)' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px' }}>
                   Asset Status Summary
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 0',
-                    borderBottom: '1px solid var(--border-light)'
-                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border-light)' }}>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>🟢 Active</span>
                     <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--success)' }}>
                       {stats.activeAssets} ({Math.round((stats.activeAssets / stats.totalAssets) * 100)}%)
                     </span>
                   </div>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 0',
-                    borderBottom: '1px solid var(--border-light)'
-                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border-light)' }}>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>🔴 Expired</span>
                     <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--danger)' }}>
                       {stats.expiredAssets} ({Math.round((stats.expiredAssets / stats.totalAssets) * 100)}%)
                     </span>
                   </div>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 0'
-                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>🔧 Maintenance</span>
                     <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--warning)' }}>
                       {stats.maintenanceAssets} ({Math.round((stats.maintenanceAssets / stats.totalAssets) * 100)}%)
@@ -228,13 +155,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div style={{
-              marginTop: '32px',
-              display: 'flex',
-              gap: '12px',
-              flexWrap: 'wrap'
-            }}>
+            <div style={{ marginTop: '32px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <a href="/assets" style={{
                 padding: '12px 24px',
                 background: 'var(--secondary)',
@@ -243,11 +164,8 @@ export default function DashboardPage() {
                 borderRadius: '6px',
                 fontWeight: 600,
                 fontSize: '14px',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'inline-block',
-                transition: 'opacity 0.2s'
-              }} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
+                display: 'inline-block'
+              }}>
                 📋 Manage Assets
               </a>
               <a href="/checklist" style={{
@@ -258,11 +176,8 @@ export default function DashboardPage() {
                 borderRadius: '6px',
                 fontWeight: 600,
                 fontSize: '14px',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'inline-block',
-                transition: 'opacity 0.2s'
-              }} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
+                display: 'inline-block'
+              }}>
                 ✓ View Checklists
               </a>
             </div>

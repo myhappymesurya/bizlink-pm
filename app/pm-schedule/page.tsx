@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import { CATEGORIES_MAP, FREQ_DAYS } from '@/lib/constants'
 import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
@@ -32,6 +32,7 @@ function getNextDue(s: Schedule) {
 }
 
 export default function PMSchedulePage() {
+  const supabase = createClient()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('')

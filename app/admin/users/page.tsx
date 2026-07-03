@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 
 type Profile = {
@@ -13,6 +13,7 @@ type Profile = {
 }
 
 export default function UsersPage() {
+  const supabase = createClient()
   const router = useRouter()
   const [users, setUsers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)

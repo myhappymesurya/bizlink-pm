@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 
 type Submission = {
@@ -24,6 +24,7 @@ type Item = {
 }
 
 export default function DetailPage() {
+  const supabase = createClient()
   const { id } = useParams()
   const [sub, setSub] = useState<Submission | null>(null)
   const [items, setItems] = useState<Item[]>([])
