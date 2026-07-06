@@ -1,25 +1,31 @@
 'use client'
-
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { INSPECTOR_OPTIONS } from '@/lib/constants'
-import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
 
 type MeasurementField = { key: string; label: string; placeholder?: string }
 type ExtraField = { key: string; label: string; type: 'select'; options: string[] }
 type EquipmentConfig = {
-  id: string; name: string; logTitle: string; icon: string
+  id: string; name: string; icon: string
   unitLabel: string; units: string[]
   extraFields: ExtraField[]
   checklist: string[]
   measurements: MeasurementField[]
   notesLabel: string
 }
+type EquipmentStatus = {
+  id: string
+  equipment_type: string
+  equipment_name: string
+  status: 'on' | 'off'
+  started_at: string | null
+  started_by: string | null
+  measurements_data: Record<string, string> | null
+}
 
 const EQUIPMENT: EquipmentConfig[] = [
   {
-    id: 'air-compressor', name: 'Air Compressor', logTitle: 'Running Hours Log', icon: '⚙️',
+    id: 'air-compressor', name: 'Air Compressor', icon: '⚙️',
     unitLabel: 'Equipment Identifier', units: ['Air Compressor 01', 'Air Compressor 02'],
     extraFields: [],
     checklist: [
@@ -40,7 +46,7 @@ const EQUIPMENT: EquipmentConfig[] = [
     notesLabel: 'Keterangan / Catatan'
   },
   {
-    id: 'air-dryer', name: 'Air Dryer', logTitle: 'Running Hours Log', icon: '💨',
+    id: 'air-dryer', name: 'Air Dryer', icon: '💨',
     unitLabel: 'Equipment Identifier', units: ['Air Dryer 01', 'Air Dryer 02'],
     extraFields: [
       { key: 'auto_drain_status', label: 'Auto Drain Check Valve Status', type: 'select', options: ['On', 'Off'] }
@@ -48,20 +54,19 @@ const EQUIPMENT: EquipmentConfig[] = [
     checklist: [
       'Auto drain berfungsi normal',
       'Tidak ada kebocoran udara pada line dryer',
-      'Tekanan udara dalam batas normal',
-      'Tekanan freon kompresor dalam batas normal',
-      'Indikator dew point dalam kondisi baik'
+      'Pressure drop dalam batas normal',
+      'Dew point indicator normal'
     ],
     measurements: [
-      { key: 'air_pressure', label: 'Air Pressure (default: 110)', placeholder: '110' },
-      { key: 'freon_pressure', label: 'Compressor Freon Pressure (default: 105)', placeholder: '105' }
+      { key: 'inlet_pressure', label: 'Inlet Pressure (Bar)' },
+      { key: 'outlet_pressure', label: 'Outlet Pressure (Bar)' },
+      { key: 'dew_point', label: 'Dew Point (°C)' }
     ],
     notesLabel: 'Keterangan / Catatan'
   },
   {
-    id: 'ac-package', name: 'AC Package', logTitle: 'Operational On Time Log', icon: '❄️',
-    unitLabel: 'Equipment Identifier',
-    units: ['PKG 01','PKG 02','PKG 03','PKG 04','PKG 05','PKG 06','PKG 07','PKG 08','PKG 09','PKG 10'],
+    id: 'ac-package', name: 'AC Package', icon: '❄️',
+    unitLabel: 'Unit', units: ['PKG 01','PKG 02','PKG 03','PKG 04','PKG 05','PKG 06','PKG 07','PKG 08','PKG 09','PKG 10'],
     extraFields: [],
     checklist: [
       'Tidak ada alarm / fault pada panel kontrol AC',
@@ -77,463 +82,476 @@ const EQUIPMENT: EquipmentConfig[] = [
       { key: 'comp02_high_freon', label: 'Compressor 02 High Pressure Freon' },
       { key: 'comp02_low_freon', label: 'Compressor 02 Low Pressure Freon' },
       { key: 'water_pressure_in', label: 'Water Pressure In (bar)' },
-      { key: 'water_pressure_out', label: 'Water Pressure Out (bar)' },
-      { key: 'water_temp_in', label: 'Water Temperature In (°C)' },
-      { key: 'water_temp_out', label: 'Water Temperature Out (°C)' },
-      { key: 'set_temperature', label: 'Set Temperature (°C)' }
+      { key: 'water_pressure_out', label: 'Water Pressure Out (bar)' }
     ],
     notesLabel: 'Keterangan / Catatan'
   },
   {
-    id: 'cooling-tower', name: 'Cooling Tower', logTitle: 'Running Hours Log', icon: '🌀',
-    unitLabel: 'Equipment Identifier', units: ['Cooling Tower 1 Cell', 'Cooling Tower 2 Cell'],
+    id: 'cooling-tower', name: 'Cooling Tower', icon: '🌀',
+    unitLabel: 'Unit', units: ['Cooling Tower 1 Cell', 'Cooling Tower 2 Cell'],
     extraFields: [],
     checklist: [
       'Level air di basin dalam batas normal',
-      'Fan motor berputar normal, tidak ada suara aneh',
-      'Pump motor berjalan normal',
+      'Fan berputar normal',
       'Tidak ada kebocoran pada sistem distribusi air',
-      'Suhu inlet / outlet dalam batas normal',
-      'Tidak ada korosi / kerusakan pada fill media'
+      'Tidak ada suara atau getaran abnormal'
     ],
     measurements: [
-      { key: 'inlet_water_temp', label: 'Inlet Water Temperature (°C)' },
-      { key: 'outlet_water_temp', label: 'Outlet Water Temperature (°C)' },
-      { key: 'water_level', label: 'Water Level (%)' },
-      { key: 'fan_motor_current', label: 'Fan Motor Current (A)' },
-      { key: 'pump_motor_current', label: 'Pump Motor Current (A)' }
+      { key: 'water_level', label: 'Water Level' },
+      { key: 'supply_pressure', label: 'Supply Pressure (bar)' }
     ],
     notesLabel: 'Keterangan / Catatan'
   },
   {
-    id: 'exhaust', name: 'Exhaust', logTitle: 'Running Hours Log', icon: '🔵',
-    unitLabel: 'Equipment Identifier',
-    units: ['Exhaust 1','Exhaust 2','Exhaust 3','Exhaust 4','Exhaust 5'],
+    id: 'exhaust', name: 'Exhaust', icon: '🔵',
+    unitLabel: 'Unit', units: ['Exhaust 1','Exhaust 2','Exhaust 3','Exhaust 4','Exhaust 5'],
     extraFields: [],
     checklist: [
       'Fan berputar normal, tidak ada suara / getaran berlebih',
-      'Arus motor dalam batas normal',
-      'Belt / coupling dalam kondisi baik (jika ada)',
-      'Saluran exhaust tidak tersumbat',
-      'Tidak ada alarm pada panel kontrol'
+      'Grille tidak tersumbat',
+      'Tidak ada kerusakan fisik pada unit'
     ],
-    measurements: [
-      { key: 'motor_current', label: 'Motor Current (A)' },
-      { key: 'airflow', label: 'Airflow (m³/h)' },
-      { key: 'vibration_level', label: 'Vibration Level (mm/s)' }
-    ],
+    measurements: [],
     notesLabel: 'Keterangan / Catatan'
   },
   {
-    id: 'adsorption-tower', name: 'Adsorption Tower', logTitle: 'Running Hours Log', icon: '🏭',
-    unitLabel: 'Equipment Identifier', units: ['Adsorption Tower 1', 'Adsorption Tower 2'],
+    id: 'adsorption-tower', name: 'Adsorption Tower', icon: '🏭',
+    unitLabel: 'Unit', units: ['Adsorption Tower 1', 'Adsorption Tower 2'],
     extraFields: [],
     checklist: [
       'Tekanan inlet dalam batas normal',
-      'Tekanan outlet dalam batas normal',
-      'Dew point dalam batas yang ditentukan',
-      'Cycle switching berjalan normal (indikator aktif)',
-      'Tidak ada kebocoran udara pada fitting / valve'
+      'Switching valve berfungsi normal',
+      'Tidak ada kebocoran pada pipa dan sambungan',
+      'Moisture indicator normal'
     ],
     measurements: [
-      { key: 'inlet_pressure', label: 'Inlet Pressure (bar)' },
-      { key: 'outlet_pressure', label: 'Outlet Pressure (bar)' },
-      { key: 'inlet_temperature', label: 'Inlet Temperature (°C)' },
-      { key: 'dew_point', label: 'Dew Point (°C)' }
+      { key: 'inlet_pressure', label: 'Inlet Pressure (Bar)' },
+      { key: 'outlet_pressure', label: 'Outlet Pressure (Bar)' }
     ],
     notesLabel: 'Keterangan / Catatan'
   },
   {
-    id: 'pompa-ct2', name: 'Pompa Dist. CT 2 Cell', logTitle: 'Running Hours Log', icon: '🔧',
-    unitLabel: 'Nama Pompa',
-    units: ['CWP-101A','CWP-101B','CWP-102A','CWP-102B'],
+    id: 'pompa-ct2', name: 'Pompa Dist. CT 2 Cell', icon: '🔧',
+    unitLabel: 'Unit', units: ['CWP-101A','CWP-101B','CWP-102A','CWP-102B'],
     extraFields: [],
     checklist: [
       'Tidak ada kebocoran pada seal / packing pompa',
-      'Suara dan getaran pompa normal (tidak ada noise berlebih)',
-      'Tekanan discharge dalam batas normal',
-      'Motor tidak panas berlebih (overheating)',
-      'Panel kontrol / indikator pompa normal',
-      'Aliran air stabil dan sesuai kebutuhan'
+      'Suara dan getaran pompa normal',
+      'Tekanan pompa sesuai normal',
+      'Flow rate sesuai spesifikasi'
     ],
     measurements: [
-      { key: 'flow_rate', label: 'Flow Rate (m³/h)' },
-      { key: 'discharge_pressure', label: 'Pump Discharge Pressure (bar)' },
-      { key: 'motor_current', label: 'Motor Current (A)' },
-      { key: 'vibration_level', label: 'Vibration Level (mm/s)' }
+      { key: 'pump_pressure', label: 'Pump Pressure (bar)' },
+      { key: 'flow_rate', label: 'Flow Rate' }
     ],
-    notesLabel: 'Keterangan / Temuan'
+    notesLabel: 'Keterangan / Catatan'
   },
   {
-    id: 'pompa-ct1', name: 'Pompa Dist. CT 1 Cell', logTitle: 'Running Hours Log', icon: '🔧',
-    unitLabel: 'Nama Pompa', units: ['Pompa Molding 01', 'Pompa Molding 02'],
+    id: 'pompa-ct1', name: 'Pompa Dist. CT 1 Cell', icon: '🔧',
+    unitLabel: 'Unit', units: ['Pompa Molding 01', 'Pompa Molding 02'],
     extraFields: [],
     checklist: [
       'Tidak ada kebocoran pada seal / packing pompa',
-      'Suara dan getaran pompa normal (tidak ada noise berlebih)',
-      'Tekanan discharge dalam batas normal',
-      'Motor tidak panas berlebih (overheating)',
-      'Panel kontrol / indikator pompa normal',
-      'Aliran air stabil dan sesuai kebutuhan'
+      'Suara dan getaran pompa normal',
+      'Tekanan pompa sesuai normal',
+      'Flow rate sesuai spesifikasi'
     ],
     measurements: [
-      { key: 'flow_rate', label: 'Flow Rate (m³/h)' },
-      { key: 'discharge_pressure', label: 'Pump Discharge Pressure (bar)' },
-      { key: 'motor_current', label: 'Motor Current (A)' },
-      { key: 'vibration_level', label: 'Vibration Level (mm/s)' }
+      { key: 'pump_pressure', label: 'Pump Pressure (bar)' },
+      { key: 'flow_rate', label: 'Flow Rate' }
     ],
-    notesLabel: 'Keterangan / Temuan'
+    notesLabel: 'Keterangan / Catatan'
   }
 ]
 
-function formatDuration(ms: number) {
-  const totalMinutes = Math.floor(ms / 60000)
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  return `${hours} jam ${minutes} menit`
-}
-
-function formatTime(ts: string) {
-  return new Date(ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-}
-
-type LogRecord = {
-  id: string
-  phase1_at: string | null
-  phase1_inspector: string | null
-  phase2_at: string | null
+function getDuration(startedAt: string): string {
+  const diff = Date.now() - new Date(startedAt).getTime()
+  const hours = Math.floor(diff / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+  return `${hours}j ${minutes}m`
 }
 
 export default function RunningHoursPage() {
   const supabase = createClient()
-  const [equipType, setEquipType] = useState(EQUIPMENT[0].id)
-  const [equipUnit, setEquipUnit] = useState(EQUIPMENT[0].units[0])
-  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0])
-  const [checklist, setChecklist] = useState<Record<number, 'yes' | 'no'>>({})
+  const [statuses, setStatuses] = useState<EquipmentStatus[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedType, setSelectedType] = useState(EQUIPMENT[0].id)
+  const [selectedUnit, setSelectedUnit] = useState(EQUIPMENT[0].units[0])
+  const [checks, setChecks] = useState<Record<string, boolean>>({})
   const [measurements, setMeasurements] = useState<Record<string, string>>({})
-  const [extraFields, setExtraFields] = useState<Record<string, string>>({})
-  const [notes, setNotes] = useState('')
-  const [inspector, setInspector] = useState('')
-  const [currentLog, setCurrentLog] = useState<LogRecord | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [checking, setChecking] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const tableRef = useRef<HTMLDivElement>(null)
+  const [showMeasurements, setShowMeasurements] = useState<string | null>(null)
+  const [measInput, setMeasInput] = useState<Record<string, string>>({})
+  const [savingMeas, setSavingMeas] = useState(false)
 
-  const config = EQUIPMENT.find(e => e.id === equipType)!
+  const config = EQUIPMENT.find(e => e.id === selectedType)!
+  const allChecked = config.checklist.every(item => checks[item])
 
-  function resetInputs() {
-    setChecklist({})
+  useEffect(() => {
+    fetchStatuses()
+    const interval = setInterval(fetchStatuses, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    setSelectedUnit(config.units[0])
+    setChecks({})
     setMeasurements({})
-    setExtraFields({})
-    setNotes('')
-    setInspector('')
-    setError('')
-    setSuccess('')
+  }, [selectedType])
+
+  async function fetchStatuses() {
+    const { data } = await supabase
+      .from('equipment_status')
+      .select('*')
+      .order('equipment_type')
+    setStatuses(data || [])
+    setLoading(false)
   }
 
-  useEffect(() => {
-    const newConfig = EQUIPMENT.find(e => e.id === equipType)!
-    setEquipUnit(newConfig.units[0])
-    resetInputs()
-  }, [equipType])
-
-  useEffect(() => {
-    resetInputs()
-  }, [equipUnit])
-
-  useEffect(() => {
-    fetchLog()
-  }, [equipType, equipUnit, tanggal])
-
-  async function fetchLog() {
-    setChecking(true)
-    try {
-      const { data } = await supabase
-        .from('running_hours_logs')
-        .select('id, phase1_at, phase1_inspector, phase2_at')
-        .eq('equipment_type', equipType)
-        .eq('equipment_name', equipUnit)
-        .eq('tanggal', tanggal)
-        .maybeSingle()
-      setCurrentLog(data || null)
-    } catch {
-      setCurrentLog(null)
-    } finally {
-      setChecking(false)
-    }
-  }
-
-  const phase = !currentLog ? 1 : !currentLog.phase2_at ? 2 : 'done'
-
-  async function handlePhase1Submit() {
+  async function handleStart() {
+    if (!allChecked) return
+    setSubmitting(true)
     setError('')
-    const unanswered = config.checklist.filter((_, i) => checklist[i] === undefined)
-    if (unanswered.length > 0) { setError('Semua poin pemeriksaan harus diisi'); return }
-    const emptyMeasure = config.measurements.filter(m => !measurements[m.key])
-    if (emptyMeasure.length > 0) { setError('Semua data pengukuran harus diisi'); return }
-    const emptyExtra = config.extraFields.filter(f => !extraFields[f.key])
-    if (emptyExtra.length > 0) { setError('Semua field informasi harus diisi'); return }
-    if (!inspector) { setError('Pilih operator / inspector terlebih dahulu'); return }
-
-    setLoading(true)
     try {
-      const userId = (await supabase.auth.getUser()).data.user?.id
-      const checklistData = config.checklist.map((label, i) => ({ label, result: checklist[i] }))
-      const measurementsData: Record<string, number | null> = {}
-      config.measurements.forEach(m => {
-        measurementsData[m.key] = measurements[m.key] ? parseFloat(measurements[m.key]) : null
+      const { data: session } = await supabase.auth.getSession()
+      const res = await fetch('/api/equipment/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session?.access_token}`
+        },
+        body: JSON.stringify({
+          equipment_type: selectedType,
+          equipment_name: selectedUnit,
+          checklist_data: checks
+        })
       })
-      const { error: err } = await supabase.from('running_hours_logs').insert({
-        equipment_type: equipType,
-        equipment_name: equipUnit,
-        tanggal,
-        phase1_at: new Date().toISOString(),
-        phase1_inspector: inspector,
-        user_id: userId,
-        checklist: checklistData,
-        measurements: measurementsData,
-        extra_fields: Object.keys(extraFields).length ? extraFields : null,
-        notes: notes || null
-      })
-      if (err) throw err
-      setSuccess('Phase 1 berhasil! Mesin tercatat ON.')
-      await fetchLog()
-    } catch (e: any) {
-      setError(e.message || 'Gagal menyimpan data')
-    } finally {
-      setLoading(false)
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Gagal menyalakan mesin')
+      } else {
+        setSuccess(`${selectedUnit} berhasil dinyalakan`)
+        setChecks({})
+        fetchStatuses()
+        setTimeout(() => setSuccess(''), 3000)
+      }
+    } catch (e) {
+      setError('Terjadi kesalahan koneksi')
     }
+    setSubmitting(false)
   }
 
-  async function handlePhase2Submit() {
-    if (!currentLog) return
-    setLoading(true)
+  async function handleStop(equipment_type: string, equipment_name: string) {
+    setSubmitting(true)
     setError('')
     try {
-      const { error: err } = await supabase
-        .from('running_hours_logs')
-        .update({ phase2_at: new Date().toISOString() })
-        .eq('id', currentLog.id)
-      if (err) throw err
-      await fetchLog()
-    } catch (e: any) {
-      setError(e.message || 'Gagal mencatat OFF')
-    } finally {
-      setLoading(false)
+      const { data: session } = await supabase.auth.getSession()
+      const res = await fetch('/api/equipment/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session?.access_token}`
+        },
+        body: JSON.stringify({ equipment_type, equipment_name })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Gagal mematikan mesin')
+      } else {
+        setSuccess(`${equipment_name} dimatikan — durasi ${data.duration_hours} jam`)
+        fetchStatuses()
+        setTimeout(() => setSuccess(''), 5000)
+      }
+    } catch (e) {
+      setError('Terjadi kesalahan koneksi')
+    }
+    setSubmitting(false)
+  }
+
+  async function handleSaveMeasurements(equipment_type: string, equipment_name: string) {
+    setSavingMeas(true)
+    const { error } = await supabase
+      .from('equipment_status')
+      .update({ measurements_data: measInput, last_updated: new Date().toISOString() })
+      .eq('equipment_type', equipment_type)
+      .eq('equipment_name', equipment_name)
+    setSavingMeas(false)
+    if (!error) {
+      setShowMeasurements(null)
+      setMeasInput({})
+      fetchStatuses()
     }
   }
 
-  const runningHours = currentLog?.phase1_at && currentLog?.phase2_at
-    ? formatDuration(new Date(currentLog.phase2_at).getTime() - new Date(currentLog.phase1_at).getTime())
-    : null
+  const onStatus = statuses.filter(s => s.status === 'on')
+  const offStatus = statuses.filter(s => s.status === 'off')
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', background: '#f5f6f7' }}>
       <Navbar />
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#0a3047', marginBottom: '8px' }}>
+          Running Hours Monitor
+        </h1>
+        <p style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '32px' }}>
+          Status real-time semua equipment — refresh otomatis setiap 30 detik
+        </p>
 
-        {/* Selector */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <div className="grid grid-cols-3 gap-3 items-end">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Tipe Equipment</label>
-              <select value={equipType} onChange={e => setEquipType(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {EQUIPMENT.map(e => <option key={e.id} value={e.id}>{e.icon} {e.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{config.unitLabel}</label>
-              <select value={equipUnit} onChange={e => setEquipUnit(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                {config.units.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-            <button onClick={() => exportTablePDF('table-running-hours', 'Running-Hours', `${config.name} Logs`)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-              📥 Export PDF
-            </button>
+        {error && (
+          <div style={{ background: '#fdecea', color: '#e74c3c', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
+            {error}
           </div>
-        </div>
+        )}
+        {success && (
+          <div style={{ background: '#eafaf1', color: '#27ae60', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
+            {success}
+          </div>
+        )}
 
-        {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-900">{config.icon} {config.name} — {config.logTitle}</h1>
-          <p className="text-sm text-gray-500">Frekuensi: Harian</p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          {/* Form */}
-          <div className="col-span-2 space-y-4">
-            {/* Phase Indicator */}
-            <div className="flex gap-2">
-              <div className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium text-center ${phase === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                ▶ Phase 1 — Isi Saat Mesin ON
-              </div>
-              <div className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium text-center ${phase === 2 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                ■ Phase 2 — Konfirmasi OFF
-              </div>
+        {/* STATUS MONITOR */}
+        <div style={{ background: 'white', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: 24, marginBottom: 32 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0a3047', margin: 0 }}>
+              Status Equipment
+            </h2>
+            <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
+              <span style={{ color: '#27ae60', fontWeight: 600 }}>● ON: {onStatus.length}</span>
+              <span style={{ color: '#7f8c8d' }}>● OFF: {offStatus.length}</span>
             </div>
+          </div>
 
-            {checking && <div className="text-center py-12 text-gray-400 text-sm">Mengecek status...</div>}
-
-            {/* DONE */}
-            {!checking && phase === 'done' && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-                <div className="text-4xl mb-3">✅</div>
-                <h2 className="text-lg font-bold text-green-700 mb-2">Selesai Hari Ini</h2>
-                <p className="text-sm text-gray-600 mb-4">
-                  ON: <strong>{formatTime(currentLog!.phase1_at!)}</strong> &nbsp;→&nbsp; OFF: <strong>{formatTime(currentLog!.phase2_at!)}</strong>
-                </p>
-                <div className="bg-white rounded-xl border border-green-200 p-4">
-                  <p className="text-xs text-gray-500 mb-1">Total Running Hours</p>
-                  <p className="text-3xl font-bold text-green-600">{runningHours}</p>
-                </div>
-                <p className="text-xs text-gray-400 mt-3">Inspector: {currentLog!.phase1_inspector}</p>
-              </div>
-            )}
-
-            {/* PHASE 2 */}
-            {!checking && phase === 2 && (
-              <div className="space-y-4">
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-                  <span className="text-3xl">🟢</span>
-                  <div>
-                    <p className="font-semibold text-amber-800">Mesin Sedang ON</p>
-                    <p className="text-sm text-gray-600">
-                      Dinyalakan pukul <strong>{formatTime(currentLog!.phase1_at!)}</strong> oleh <strong>{currentLog!.phase1_inspector}</strong>
-                    </p>
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h2 className="font-semibold text-gray-800 mb-2">■ Phase 2 — Konfirmasi Mesin OFF</h2>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Tekan tombol ini saat mesin sudah dimatikan. Sistem akan mencatat waktu OFF dan menghitung running hours otomatis.
-                  </p>
-                  {error && <div className="mb-3 bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-red-700 text-sm">❌ {error}</p></div>}
-                  <button onClick={handlePhase2Submit} disabled={loading}
-                    className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors">
-                    {loading ? 'Menyimpan...' : '■ Konfirmasi Mesin OFF'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* PHASE 1 */}
-            {!checking && phase === 1 && (
-              <div className="space-y-4">
-                {/* Informasi Umum */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h2 className="font-semibold text-gray-800 mb-3">📋 Informasi Umum</h2>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Operasi *</label>
-                      <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    </div>
-                    {config.extraFields.map(field => (
-                      <div key={field.key}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{field.label} *</label>
-                        <select value={extraFields[field.key] || ''} onChange={e => setExtraFields(p => ({ ...p, [field.key]: e.target.value }))}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                          <option value="">Pilih...</option>
-                          {field.options.map(o => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Poin Pemeriksaan */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h2 className="font-semibold text-gray-800 mb-3">✅ Poin Pemeriksaan</h2>
-                  <div className="space-y-2">
-                    {config.checklist.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
-                        <span className="text-sm text-gray-700 flex-1">
-                          <span className="text-gray-400 mr-2">{i + 1}</span>{item}
-                        </span>
-                        <div className="flex gap-2 shrink-0">
-                          <button type="button" onClick={() => setChecklist(p => ({ ...p, [i]: 'yes' }))}
-                            className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${checklist[i] === 'yes' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-300 hover:bg-green-50'}`}>
-                            ✓ Yes
-                          </button>
-                          <button type="button" onClick={() => setChecklist(p => ({ ...p, [i]: 'no' }))}
-                            className={`px-3 py-1 rounded text-xs font-medium border transition-colors ${checklist[i] === 'no' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-500 border-gray-300 hover:bg-red-50'}`}>
-                            ✗ No
-                          </button>
+          {loading ? (
+            <p style={{ color: '#7f8c8d', fontSize: 14 }}>Memuat status...</p>
+          ) : (
+            EQUIPMENT.map(eq => {
+              const units = statuses.filter(s => s.equipment_type === eq.id)
+              if (units.length === 0) return null
+              return (
+                <div key={eq.id} style={{ marginBottom: 20 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: '#2c3e50', marginBottom: 8 }}>
+                    {eq.icon} {eq.name}
+                  </h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {units.map(unit => (
+                      <div key={unit.id} style={{
+                        border: `1px solid ${unit.status === 'on' ? '#27ae60' : '#e0e0e0'}`,
+                        borderRadius: 8,
+                        padding: '12px 16px',
+                        minWidth: 200,
+                        background: unit.status === 'on' ? '#f0fdf4' : 'white'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>{unit.equipment_name}</span>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: 12,
+                            background: unit.status === 'on' ? '#27ae60' : '#e0e0e0',
+                            color: unit.status === 'on' ? 'white' : '#7f8c8d'
+                          }}>
+                            {unit.status === 'on' ? 'ON' : 'OFF'}
+                          </span>
                         </div>
+
+                        {unit.status === 'on' && unit.started_at && (
+                          <div style={{ fontSize: 12, color: '#7f8c8d', marginBottom: 8 }}>
+                            ⏱ {getDuration(unit.started_at)}
+                          </div>
+                        )}
+
+                        {unit.status === 'on' && (
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => {
+                                const measConfig = EQUIPMENT.find(e => e.id === unit.equipment_type)
+                                if (measConfig && measConfig.measurements.length > 0) {
+                                  setShowMeasurements(`${unit.equipment_type}__${unit.equipment_name}`)
+                                  setMeasInput(unit.measurements_data || {})
+                                }
+                              }}
+                              style={{
+                                padding: '4px 10px',
+                                background: '#2d9cca',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                fontSize: 11,
+                                fontWeight: 600
+                              }}
+                            >
+                              📊 Measurements
+                            </button>
+                            <button
+                              onClick={() => handleStop(unit.equipment_type, unit.equipment_name)}
+                              disabled={submitting}
+                              style={{
+                                padding: '4px 10px',
+                                background: '#e74c3c',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                opacity: submitting ? 0.6 : 1
+                              }}
+                            >
+                              ⏹ Stop
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* Data & Pengukuran */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h2 className="font-semibold text-gray-800 mb-3">📊 Data & Pengukuran</h2>
-                  <div className="space-y-3">
-                    {config.measurements.map(field => (
-                      <div key={field.key} className="flex items-center justify-between gap-4">
-                        <span className="text-sm text-gray-700 flex-1">{field.label}</span>
-                        <input type="number" value={measurements[field.key] || ''} placeholder={field.placeholder || '0'}
-                          onChange={e => setMeasurements(p => ({ ...p, [field.key]: e.target.value }))}
-                          className="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" step="any" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Keterangan */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h2 className="font-semibold text-gray-800 mb-3">💬 {config.notesLabel}</h2>
-                  <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-                    placeholder="Tuliskan catatan, temuan, atau masalah yang ditemukan..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-                </div>
-
-                {/* Inspector */}
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h2 className="font-semibold text-gray-800 mb-3">👤 Operator / Inspector</h2>
-                  <div className="grid grid-cols-3 gap-2">
-                    {INSPECTOR_OPTIONS.map(name => (
-                      <button key={name} type="button" onClick={() => setInspector(name)}
-                        className={`py-2 px-2 rounded-lg text-sm font-medium border transition-colors ${inspector === name ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3"><p className="text-red-700 text-sm">❌ {error}</p></div>}
-                {success && <div className="bg-blue-50 border border-blue-200 rounded-xl p-3"><p className="text-blue-700 text-sm">✅ {success}</p></div>}
-
-                <div className="flex gap-3 justify-end">
-                  <button type="button" onClick={resetInputs}
-                    className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
-                    Reset
-                  </button>
-                  <button type="button" onClick={handlePhase1Submit} disabled={loading}
-                    className="px-6 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors">
-                    {loading ? 'Menyimpan...' : '▶ Submit Phase 1 — Mesin ON'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Logs List */}
-          <div className="col-span-1">
-            <div ref={tableRef} id="table-running-hours" className="bg-white rounded-xl border border-gray-200 p-4 sticky top-4">
-              <h3 className="font-semibold text-gray-800 mb-3 text-sm">📊 Riwayat</h3>
-              <div className="text-xs text-gray-600">
-                <p>Data akan tampil setelah submit</p>
-              </div>
-            </div>
-          </div>
+              )
+            })
+          )}
         </div>
 
+        {/* MEASUREMENTS MODAL */}
+        {showMeasurements && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+          }}>
+            <div style={{ background: 'white', padding: 24, borderRadius: 8, width: 400, maxWidth: '90%' }}>
+              <h3 style={{ color: '#0a3047', marginBottom: 16 }}>Input Measurements</h3>
+              {(() => {
+                const [type, name] = showMeasurements.split('__')
+                const measConfig = EQUIPMENT.find(e => e.id === type)
+                if (!measConfig) return null
+                return (
+                  <>
+                    {measConfig.measurements.map(m => (
+                      <div key={m.key} style={{ marginBottom: 12 }}>
+                        <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>{m.label}</label>
+                        <input
+                          type="text"
+                          value={measInput[m.key] || ''}
+                          onChange={e => setMeasInput(prev => ({ ...prev, [m.key]: e.target.value }))}
+                          style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                        />
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                      <button
+                        onClick={() => { setShowMeasurements(null); setMeasInput({}) }}
+                        style={{ flex: 1, padding: 10, background: '#7f8c8d', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Batal
+                      </button>
+                      <button
+                        onClick={() => handleSaveMeasurements(type, name)}
+                        disabled={savingMeas}
+                        style={{ flex: 1, padding: 10, background: '#0a3047', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        {savingMeas ? 'Menyimpan...' : 'Simpan'}
+                      </button>
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* FORM OPERASI */}
+        <div style={{ background: 'white', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0a3047', marginBottom: 20 }}>
+            Operasi Mesin
+          </h2>
+
+          <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 200px' }}>
+              <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Tipe Equipment</label>
+              <select
+                value={selectedType}
+                onChange={e => setSelectedType(e.target.value)}
+                style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+              >
+                {EQUIPMENT.map(e => (
+                  <option key={e.id} value={e.id}>{e.icon} {e.name}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ flex: '1 1 200px' }}>
+              <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>{config.unitLabel}</label>
+              <select
+                value={selectedUnit}
+                onChange={e => setSelectedUnit(e.target.value)}
+                style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+              >
+                {config.units.map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Cek status unit yang dipilih */}
+          {(() => {
+            const unitStatus = statuses.find(
+              s => s.equipment_type === selectedType && s.equipment_name === selectedUnit
+            )
+            if (unitStatus?.status === 'on') {
+              return (
+                <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6, padding: 12, fontSize: 14, color: '#856404' }}>
+                  ⚠️ {selectedUnit} sedang dalam status ON sejak {unitStatus.started_at ? new Date(unitStatus.started_at).toLocaleString('id-ID') : '-'}.
+                  Gunakan tombol Stop di Status Monitor untuk mematikan mesin ini.
+                </div>
+              )
+            }
+            return (
+              <>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: '#2c3e50', marginBottom: 12 }}>
+                  Checklist Sebelum Nyalakan ({config.checklist.filter(i => checks[i]).length}/{config.checklist.length})
+                </h3>
+                {config.checklist.map(item => (
+                  <div
+                    key={item}
+                    onClick={() => setChecks(prev => ({ ...prev, [item]: !prev[item] }))}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                      borderRadius: 6, marginBottom: 6, cursor: 'pointer',
+                      background: checks[item] ? '#f0fdf4' : '#fafafa',
+                      border: checks[item] ? '1px solid #bbf7d0' : '1px solid #e0e0e0'
+                    }}
+                  >
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                      background: checks[item] ? '#27ae60' : 'white',
+                      border: checks[item] ? 'none' : '2px solid #ddd',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'white', fontSize: 12
+                    }}>
+                      {checks[item] ? '✓' : ''}
+                    </div>
+                    <span style={{ fontSize: 13 }}>{item}</span>
+                  </div>
+                ))}
+
+                <button
+                  onClick={handleStart}
+                  disabled={!allChecked || submitting}
+                  style={{
+                    marginTop: 16, width: '100%', padding: 12,
+                    background: allChecked ? '#27ae60' : '#e0e0e0',
+                    color: allChecked ? 'white' : '#7f8c8d',
+                    border: 'none', borderRadius: 6, cursor: allChecked ? 'pointer' : 'not-allowed',
+                    fontSize: 14, fontWeight: 600, transition: 'background 0.2s'
+                  }}
+                >
+                  {submitting ? 'Memproses...' : allChecked ? `▶ Nyalakan ${selectedUnit}` : `Lengkapi checklist dulu (${config.checklist.filter(i => checks[i]).length}/${config.checklist.length})`}
+                </button>
+              </>
+            )
+          })()}
+        </div>
       </div>
     </div>
   )
