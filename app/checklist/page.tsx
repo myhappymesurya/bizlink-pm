@@ -361,7 +361,14 @@ const CATEGORIES = [
   'Pompa Pemadam Kebakaran',
 ]
 
-type Asset = { id: string; location: string; type?: string }
+type Asset = { 
+  id: string
+  location: string
+  type?: string
+  brand?: string
+  serial_number?: string
+  expired_date?: string
+}
 
 export default function ChecklistPage() {
   const supabase = createClient()
@@ -390,8 +397,8 @@ export default function ChecklistPage() {
   }, [])
 
   async function loadAssets() {
-    const { data } = await supabase.from('assets').select('id, location, type')
-      .eq('sub_category', category).order('id')
+    const { data } = await supabase.from('assets').select('id, location, type, brand, serial_number, expired_date')
+  .eq('sub_category', category).order('id')
     setAssets(data || [])
     setSelectedAsset('')
     setChecks({})
@@ -482,6 +489,50 @@ setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
         <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
           boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
           <div style={{ marginBottom: '16px' }}>
+            {selectedAsset && (() => {
+            const asset = assets.find(a => a.id === selectedAsset)
+            const hasInfo = asset && (asset.brand || asset.type || asset.serial_number || asset.expired_date)
+            if (!hasInfo) return null
+            return (
+              <div style={{ 
+                background: '#f8f9fa', 
+                borderRadius: '8px', 
+                padding: '16px', 
+                marginBottom: '16px',
+                border: '1px solid #e9ecef'
+              }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#0a3047', marginBottom: '12px' }}>
+                  General Information
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {asset.brand && (
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#7f8c8d', margin: 0 }}>Brand</p>
+                      <p style={{ fontSize: '13px', fontWeight: 500, margin: 0 }}>{asset.brand}</p>
+                    </div>
+                  )}
+                  {asset.type && (
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#7f8c8d', margin: 0 }}>Type</p>
+                      <p style={{ fontSize: '13px', fontWeight: 500, margin: 0 }}>{asset.type}</p>
+                    </div>
+                  )}
+                  {asset.serial_number && (
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#7f8c8d', margin: 0 }}>Serial Number</p>
+                      <p style={{ fontSize: '13px', fontWeight: 500, margin: 0 }}>{asset.serial_number}</p>
+                    </div>
+                  )}
+                  {asset.expired_date && (
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#7f8c8d', margin: 0 }}>Expired Date</p>
+                      <p style={{ fontSize: '13px', fontWeight: 500, margin: 0 }}>{asset.expired_date}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
             <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Kategori</label>
             <select value={category} onChange={e => setCategory(e.target.value)}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
