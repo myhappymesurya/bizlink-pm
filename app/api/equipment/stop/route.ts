@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       checklist: current.checklist_data,
       measurements: current.measurements_data || {},
       user_id: user.id,
+      duration_minutes: durationMinutes,
       notes: `Durasi: ${durationHours.toFixed(2)} jam (${durationMinutes} menit)`,
       created_at: now.toISOString()
     })
