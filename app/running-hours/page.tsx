@@ -292,12 +292,28 @@ export default function RunningHoursPage() {
     <div style={{ minHeight: '100vh', background: '#f5f6f7' }}>
       <Navbar />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#0a3047', marginBottom: '8px' }}>
-          Running Hours Monitor
-        </h1>
-        <p style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '32px' }}>
-          Status real-time semua equipment — refresh otomatis setiap 30 detik
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#0a3047', margin: 0 }}>
+              Running Hours Monitor
+            </h1>
+            <p style={{ color: '#7f8c8d', fontSize: '14px', marginTop: 4 }}>
+              Status real-time semua equipment — refresh otomatis setiap 30 detik
+            </p>
+          </div>
+          <a href="/running-hours/rekap" style={{
+            padding: '10px 20px',
+            background: '#d4af37',
+            color: '#0a3047',
+            textDecoration: 'none',
+            borderRadius: 6,
+            fontWeight: 600,
+            fontSize: 14,
+            display: 'inline-block'
+          }}>
+            📊 Rekapitulasi
+          </a>
+        </div>
 
         {error && (
           <div style={{ background: '#fdecea', color: '#e74c3c', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
