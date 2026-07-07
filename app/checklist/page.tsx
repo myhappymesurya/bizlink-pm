@@ -361,7 +361,7 @@ const CATEGORIES = [
   'Pompa Pemadam Kebakaran',
 ]
 
-type Asset = { id: string; location: string }
+type Asset = { id: string; location: string; type?: string }
 
 export default function ChecklistPage() {
   const supabase = createClient()
@@ -390,7 +390,7 @@ export default function ChecklistPage() {
   }, [])
 
   async function loadAssets() {
-    const { data } = await supabase.from('assets').select('id, location')
+    const { data } = await supabase.from('assets').select('id, location, type')
       .eq('sub_category', category).order('id')
     setAssets(data || [])
     setSelectedAsset('')
@@ -401,9 +401,16 @@ export default function ChecklistPage() {
     setChecks(prev => ({ ...prev, [item]: !prev[item] }))
   }
 
-  const items = isFreqBased
+  const selectedAssetData = assets.find(a => a.id === selectedAsset)
+  const assetType = selectedAssetData?.type || ''
+
+  const baseItems = isFreqBased
     ? (FREQ_CHECKLIST_ITEMS[category]?.[frequency] || [])
     : (CHECKLIST_ITEMS[category] || [])
+
+  const items = category === 'Fire Extinguisher' && assetType === 'CO2'
+    ? baseItems.filter(item => item !== 'Pressure indicator berwarna hijau')
+    : baseItems
 
   const allChecked = items.length > 0 && items.every(item => checks[item])
   const checkedCount = items.filter(item => checks[item]).length
