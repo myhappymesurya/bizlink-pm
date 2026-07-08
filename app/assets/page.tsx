@@ -88,7 +88,23 @@ export default function AssetsPage() {
   async function handleSave(id: string) {
     setSaving(true)
     try {
-      const { error } = await supabase.from('assets').update({ status: editStatus, expired_date: editDate || null }).eq('id', id)
+      // Auto-set status berdasarkan expired_date
+      let finalStatus = editStatus
+      if (editDate) {
+        const expiredDate = new Date(editDate)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        if (expiredDate < today) {
+          finalStatus = 'expired'
+        } else if (editStatus === 'expired') {
+          finalStatus = 'active'
+        }
+      }
+
+      const { error } = await supabase.from('assets').update({ 
+        status: finalStatus, 
+        expired_date: editDate || null 
+      }).eq('id', id)
       if (error) { alert('Error: ' + error.message); return }
       await loadAssets()
       setEditId(null)
