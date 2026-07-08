@@ -416,8 +416,13 @@ export default function ChecklistPage() {
     ? (FREQ_CHECKLIST_ITEMS[category]?.[frequency] || [])
     : (CHECKLIST_ITEMS[category] || [])
 
-  const items = category === 'Fire Extinguisher' && assetType === 'CO2'
+  const isOutdoorHydrant = category === 'Fire Hydrant' && 
+    (selectedAssetData?.location?.toLowerCase().startsWith('outdoor') ?? false)
+
+const items = category === 'Fire Extinguisher' && assetType === 'CO2'
     ? baseItems.filter(item => item !== 'Pressure indicator berwarna hijau')
+    : isOutdoorHydrant
+    ? baseItems.filter(item => !['Lampu alarm berfungsi dengan baik', 'Bel berfungsi dengan baik'].includes(item))
     : baseItems
 
   const allChecked = items.length > 0 && items.every(item => checks[item])
