@@ -83,11 +83,11 @@ export default function DetailPage() {
               <div style={{ color: '#888', fontSize: '13px', marginTop: '4px' }}>{sub.month} {sub.year} · {sub.location}</div>
             </div>
             <span style={{
-              background: sub.status==='ok'?'#f0fdf4':sub.status==='approved'?'#eff6ff':'#fff1f2',
-              color: sub.status==='ok'?'#22c55e':sub.status==='approved'?'#3b82f6':'#ef4444',
+              background: sub.status==='ok'?'#f0fdf4':sub.status==='approved'?'#eff6ff':sub.status==='corrected'?'#fffbeb':'#fff1f2',
+              color: sub.status==='ok'?'#22c55e':sub.status==='approved'?'#3b82f6':sub.status==='corrected'?'#f59e0b':'#ef4444',
               padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 600
             }}>
-              {sub.status==='ok'?'✓ OK':sub.status==='approved'?'✓ Approved':'✗ NOK'}
+              {sub.status==='ok'?'✓ OK':sub.status==='approved'?'✓ Approved':sub.status==='corrected'?'⚡ Corrected':'✗ NOK'}
             </span>
           </div>
         </div>

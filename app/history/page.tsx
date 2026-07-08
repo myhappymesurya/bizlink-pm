@@ -110,6 +110,7 @@ export default function HistoryPage() {
             .nok { color: red; font-weight: bold; }
             .approved { color: blue; font-weight: bold; }
             @media print { button { display: none; } }
+            .corrected { color: orange; font-weight: bold; }
           </style>
         </head>
         <body>
@@ -146,7 +147,7 @@ export default function HistoryPage() {
                   <td>${s.location || '—'}</td>
                   <td>${s.inspector}</td>
                   <td>${s.notes ? s.notes.replace('Frekuensi: ','') : '—'}</td>
-                  <td class="${s.status}">${s.status === 'ok' ? '✓ OK' : s.status === 'approved' ? '✓ Approved' : '✗ NOK'}</td>
+                  <td class="${s.status}">${s.status === 'ok' ? '✓ OK' : s.status === 'approved' ? '✓ Approved' : s.status === 'corrected' ? '⚡ Corrected' : '✗ NOK'}</td>
                 </tr>
               `).join('')}
             </tbody>
