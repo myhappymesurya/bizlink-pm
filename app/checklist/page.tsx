@@ -380,6 +380,7 @@ export default function ChecklistPage() {
   const [inspector, setInspector] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [catatan, setCatatan] = useState('')
 
   const isFreqBased = category in FREQ_OPTIONS
 
@@ -443,12 +444,12 @@ export default function ChecklistPage() {
       user_id: (await supabase.auth.getUser()).data.user?.id,
       category: cat,
       sub_category: category,
-      status: allChecked ? 'ok' : 'nok',
+      status: (allChecked && !catatan) ? 'ok' : 'nok',
       inspector,
       year,
       month,
       location: asset?.location || '',
-      notes: isFreqBased ? `Frekuensi: ${frequency}` : '',
+      notes: catatan || (isFreqBased ? `Frekuensi: ${frequency}` : ''),
       submitted_at: now.toISOString(),
     }).select().single()
 
@@ -456,6 +457,7 @@ export default function ChecklistPage() {
       await supabase.from('checklist_items').insert(
         items.map(label => ({ submission_id: sub.id, label, result: checks[label] ? 'OK' : 'NOK' }))
       )
+      setCatatan('')
       setSaved(true)
       setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
     }
@@ -476,6 +478,7 @@ await supabase.from('pm_schedules')
   .eq('sub_category', category)
   .eq('frequency', freqToUpdate)
 
+setCatatan('')
 setSaved(true)
 setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
   }
@@ -599,6 +602,31 @@ setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
           ))}
         </div>
 
+        <div style={{ marginTop: 16 }}>
+  <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>
+    Catatan (opsional — mengisi catatan akan otomatis set status NOK)
+  </label>
+  <textarea
+    value={catatan}
+    onChange={(e) => setCatatan(e.target.value)}
+    placeholder="Tulis catatan hasil pemeriksaan jika ada..."
+    rows={3}
+    style={{
+      width: '100%',
+      padding: '10px',
+      borderRadius: '8px',
+      border: catatan ? '1px solid #ef4444' : '1px solid #ddd',
+      fontSize: '14px',
+      resize: 'vertical',
+      boxSizing: 'border-box'
+    }}
+  />
+  {catatan && (
+    <p style={{ fontSize: '12px', color: '#ef4444', marginTop: 4 }}>
+      ⚠️ Status akan otomatis NOK karena ada catatan
+    </p>
+  )}
+</div>
         <button onClick={handleSubmit} disabled={saving || saved}
           style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none',
             background: saved ? '#22c55e' : '#1a73e8', color: 'white',

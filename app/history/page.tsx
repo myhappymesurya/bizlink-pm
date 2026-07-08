@@ -37,6 +37,9 @@ export default function HistoryPage() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [subCategory, setSubCategory] = useState('')
+  const [correctiveId, setCorrectiveId] = useState<string | null>(null)
+  const [correctiveText, setCorrectiveText] = useState('')
+  const [savingCorrective, setSavingCorrective] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { loadHistory() }, [status, month, year, category, subCategory])
@@ -63,6 +66,28 @@ export default function HistoryPage() {
     }).eq('id', id)
     loadHistory()
   }
+  async function handleCorrective(id: string) {
+  if (!correctiveText.trim()) return
+  setSavingCorrective(true)
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  await supabase.from('corrective_actions').insert({
+    submission_id: id,
+    description: correctiveText,
+    created_by: session?.user.id,
+    created_at: new Date().toISOString()
+  })
+  
+  await supabase.from('checklist_submissions').update({
+    status: 'corrected',
+    approved_at: new Date().toISOString()
+  }).eq('id', id)
+  
+  setCorrectiveId(null)
+  setCorrectiveText('')
+  setSavingCorrective(false)
+  loadHistory()
+}
 
   function handlePrint() {
     const content = printRef.current
@@ -146,6 +171,7 @@ export default function HistoryPage() {
     { key: 'all', label: 'Semua' },
     { key: 'ok', label: '✓ OK' },
     { key: 'nok', label: '✗ NOK' },
+    { key: 'corrected', label: '⚡ Corrected' },
     { key: 'approved', label: 'Approved' },
   ]
 
@@ -267,11 +293,11 @@ export default function HistoryPage() {
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
-                      background: s.status==='ok'?'#f0fdf4':s.status==='approved'?'#eff6ff':'#fff1f2',
-                      color: s.status==='ok'?'#22c55e':s.status==='approved'?'#3b82f6':'#ef4444',
+                      background: s.status==='ok'?'#f0fdf4':s.status==='approved'?'#eff6ff':s.status==='corrected'?'#fffbeb':'#fff1f2',
+                      color: s.status==='ok'?'#22c55e':s.status==='approved'?'#3b82f6':s.status==='corrected'?'#f59e0b':'#ef4444',
                       padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500
                     }}>
-                      {s.status==='ok'?'✓ OK':s.status==='approved'?'✓ Approved':'✗ NOK'}
+                      {s.status==='ok'?'✓ OK':s.status==='approved'?'✓ Approved':s.status==='corrected'?'⚡ Corrected':'✗ NOK'}
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
@@ -284,6 +310,19 @@ export default function HistoryPage() {
                     )}
                     {s.status === 'approved' && (
                       <span style={{ color: '#22c55e', fontSize: '12px' }}>✓ Done</span>
+                    )}
+                    {s.status === 'nok' && (
+                      <button onClick={() => { setCorrectiveId(s.id); setCorrectiveText('') }}
+                        style={{ padding: '5px 12px', background: '#f59e0b', color: 'white',
+                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                        Corrective Action
+                      </button>
+                    )}
+                    {s.status === 'corrected' && (
+                      <a href={`/history/${s.id}`}
+                        style={{ color: '#f59e0b', fontSize: '12px', textDecoration: 'none' }}>
+                        ⚡ Lihat Detail
+                      </a>
                     )}
                   </td>
                 </tr>
@@ -301,6 +340,38 @@ export default function HistoryPage() {
           </div>
         </div>
       </div>
+      {correctiveId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'white', padding: 24, borderRadius: 8, width: 440, maxWidth: '90%' }}>
+            <h3 style={{ color: '#0a3047', marginBottom: 8 }}>Corrective Action</h3>
+            <p style={{ fontSize: 13, color: '#7f8c8d', marginBottom: 16 }}>
+              Deskripsikan tindakan perbaikan yang sudah dilakukan
+            </p>
+            <textarea
+              value={correctiveText}
+              onChange={e => setCorrectiveText(e.target.value)}
+              placeholder="Contoh: Freon diisi ulang, pressure indicator kembali hijau..."
+              rows={4}
+              style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 6, fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+              <button
+                onClick={() => { setCorrectiveId(null); setCorrectiveText('') }}
+                style={{ flex: 1, padding: 10, background: '#7f8c8d', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => handleCorrective(correctiveId)}
+                disabled={savingCorrective || !correctiveText.trim()}
+                style={{ flex: 1, padding: 10, background: correctiveText.trim() ? '#f59e0b' : '#e0e0e0', color: correctiveText.trim() ? 'white' : '#7f8c8d', border: 'none', borderRadius: 6, cursor: correctiveText.trim() ? 'pointer' : 'not-allowed' }}
+              >
+                {savingCorrective ? 'Menyimpan...' : 'Simpan & Selesai'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
