@@ -28,16 +28,19 @@ export default function DetailPage() {
   const { id } = useParams()
   const [sub, setSub] = useState<Submission | null>(null)
   const [items, setItems] = useState<Item[]>([])
+  const [corrective, setCorrective] = useState<{ description: string; created_at: string } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
-      const [{ data: s }, { data: i }] = await Promise.all([
+      const [{ data: s }, { data: i }, { data: c }] = await Promise.all([
         supabase.from('checklist_submissions').select('*').eq('id', id).single(),
         supabase.from('checklist_items').select('*').eq('submission_id', id),
+        supabase.from('corrective_actions').select('*').eq('submission_id', id).single(),
       ])
       setSub(s)
       setItems(i || [])
+      setCorrective(c || null)
       setLoading(false)
     }
     load()
@@ -137,6 +140,24 @@ export default function DetailPage() {
           ))}
         </div>
 
+        {sub.status === 'corrected' && corrective && (
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px',
+            border: '1px solid #fcd34d' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#f59e0b', marginBottom: '16px' }}>
+              ⚡ Corrective Action
+            </h3>
+            <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px',
+              border: '1px solid #fde68a', marginBottom: '12px' }}>
+              <p style={{ fontSize: '13px', color: '#92400e', margin: 0, lineHeight: 1.6 }}>
+                {corrective.description}
+              </p>
+            </div>
+            <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>
+              Diperbaiki pada: {new Date(corrective.created_at).toLocaleString('id-ID')}
+            </p>
+          </div>
+        )}
         {sub.status === 'ok' && (
           <button onClick={handleApprove}
             style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none',
