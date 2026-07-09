@@ -108,6 +108,9 @@ export default function Navbar() {
           <Link href="/pm-schedule" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             PM Schedule
           </Link>
+          <Link href="/pm-calendar" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+          PM Calendar
+          </Link>
           <Link href="/meter-record" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             Meter Record
           </Link>
