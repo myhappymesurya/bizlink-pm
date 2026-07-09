@@ -5,10 +5,6 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/running-hours-alert",
-      "schedule": "0 * * * *"
-    },
-    {
       "path": "/api/cron/generate-pm-instances",
       "schedule": "0 0 * * *"
     }
