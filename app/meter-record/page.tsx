@@ -7,6 +7,7 @@ import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
 
 type MeterField = { key: string; label: string; auto?: boolean }
+
 type MeterConfig = {
   id: string; name: string; subtitle: string; icon: string
   frequency: 'Daily' | 'Monthly'; freqLabel: string
@@ -154,7 +155,9 @@ export default function MeterRecordPage() {
         user_id: userId,
         submitted_at: new Date().toISOString()
       })
+
       if (insertError) throw insertError
+
       setSuccess(true)
       setReadings({})
       setNotes('')
@@ -173,47 +176,81 @@ export default function MeterRecordPage() {
     return (r1 + r2).toFixed(2)
   })()
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <div className="max-w-2xl mx-auto px-4 py-6">
+  // Token diambil presisi dari pola Dashboard & Assets page:
+  // card: background shorthand, radius 8px, padding 24px, shadow saja tanpa border
+  // input/select: padding 10px 14px, border 1px var(--border), radius 6px, fontSize 14px
+  // button primer: background var(--primary) atau var(--secondary), radius 6px, fontWeight 600
+  const card: React.CSSProperties = {
+    background: 'var(--bg-card)',
+    padding: '24px',
+    borderRadius: '8px',
+    boxShadow: 'var(--shadow)',
+    marginBottom: '24px'
+  }
+  const fieldLabel: React.CSSProperties = {
+    display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--primary)'
+  }
+  const fieldInput: React.CSSProperties = {
+    width: '100%', padding: '10px 14px', border: '1px solid var(--border)',
+    borderRadius: '6px', fontSize: '14px', background: 'white', boxSizing: 'border-box'
+  }
+  const btnPrimary: React.CSSProperties = {
+    padding: '10px 16px', background: 'var(--primary)', color: 'white',
+    border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600
+  }
+  const btnGold: React.CSSProperties = {
+    padding: '12px 24px', background: 'var(--secondary)', color: 'var(--primary)',
+    border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600
+  }
+  const btnNeutral: React.CSSProperties = {
+    padding: '12px 24px', background: 'var(--text-secondary)', color: 'white',
+    border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 600
+  }
 
-        {/* Selector */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Pilih Meter</label>
-          <select
-            value={selectedId}
-            onChange={e => setSelectedId(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {METERS.map(m => (
-              <option key={m.id} value={m.id}>
-                {m.icon} {m.name}{m.subtitle ? ` — ${m.subtitle}` : ''}
-              </option>
-            ))}
-          </select>
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
+      <Navbar />
+      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '32px 24px' }}>
+
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--primary)', marginBottom: '8px' }}>
+            {meter.icon} {meter.name}
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Frekuensi: {meter.freqLabel}</p>
         </div>
 
-        {/* Header */}
-        <div className="mb-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{meter.icon} {meter.name}</h1>
-            <p className="text-sm text-gray-500">Frekuensi: {meter.freqLabel}</p>
+        {/* Selector + Export */}
+        <div style={card}>
+          <label style={fieldLabel}>Pilih Meter</label>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <select
+              value={selectedId}
+              onChange={e => setSelectedId(e.target.value)}
+              style={{ ...fieldInput, flex: 1, minWidth: '220px' }}
+            >
+              {METERS.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.icon} {m.name}{m.subtitle ? ` — ${m.subtitle}` : ''}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => exportTablePDF('table-meter-records', 'Meter-Records', `${meter.name} Records`)}
+              style={btnPrimary}
+            >
+              📥 Export PDF
+            </button>
           </div>
-          <button onClick={() => exportTablePDF('table-meter-records', 'Meter-Records', `${meter.name} Records`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-            📥 Export PDF
-          </button>
         </div>
 
         {/* Duplicate Warning */}
         {existingRecord && (
-          <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-green-500">✅</span>
-              <span className="font-semibold text-green-700">Sudah diisi untuk periode ini</span>
+          <div style={{ ...card, background: '#d4edda', color: '#155724' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span>✅</span>
+              <span style={{ fontWeight: 700 }}>Sudah diisi untuk periode ini</span>
             </div>
-            <p className="text-sm text-gray-600">
+            <p style={{ fontSize: '13px', margin: 0 }}>
               PIC: <strong>{existingRecord.inspector}</strong> · Waktu:{' '}
               {new Date(existingRecord.submitted_at).toLocaleString('id-ID')} · Status: ✓ OK
             </p>
@@ -222,34 +259,38 @@ export default function MeterRecordPage() {
 
         {/* Success */}
         {success && (
-          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <p className="text-blue-700 font-medium">✅ Data berhasil disimpan!</p>
+          <div style={{ ...card, background: '#e8f4f8', color: '#004085' }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>✅ Data berhasil disimpan!</p>
           </div>
         )}
 
         {/* Informasi Umum */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <h2 className="font-semibold text-gray-800 mb-3">📋 Informasi Umum</h2>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tanggal <span className="text-red-500">*</span>
+        <div style={card}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px' }}>📋 Informasi Umum</h3>
+          <label style={fieldLabel}>
+            Tanggal <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <input
             type="date"
             value={tanggal}
             onChange={e => setTanggal(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={fieldInput}
           />
         </div>
 
         {/* Data & Pengukuran */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <h2 className="font-semibold text-gray-800 mb-3">📊 {meter.sectionTitle}</h2>
-          <div className="space-y-3">
+        <div style={card}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px' }}>📊 {meter.sectionTitle}</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {meter.fields.map(field => (
-              <div key={field.key} className="flex items-center justify-between gap-4">
-                <span className="text-sm text-gray-700 flex-1">{field.label}</span>
+              <div key={field.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                <span style={{ fontSize: '14px', color: 'var(--text-primary)', flex: 1 }}>{field.label}</span>
                 {field.auto ? (
-                  <div className="w-36 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-center font-semibold text-blue-700">
+                  <div style={{
+                    width: '160px', padding: '10px 14px', borderRadius: '6px', fontSize: '14px',
+                    textAlign: 'center', fontWeight: 700, background: '#e8f4f8', color: 'var(--primary)',
+                    border: '1px solid var(--border)'
+                  }}>
                     {readings['reading_1'] || readings['reading_2'] ? autoTotal : '= BP + LBP'}
                   </div>
                 ) : (
@@ -257,7 +298,7 @@ export default function MeterRecordPage() {
                     type="number"
                     value={readings[field.key] || ''}
                     onChange={e => handleReadingChange(field.key, e.target.value)}
-                    className="w-36 border border-gray-300 rounded-lg px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ ...fieldInput, width: '160px', textAlign: 'right' }}
                     placeholder="0"
                     min="0"
                     step="any"
@@ -270,52 +311,57 @@ export default function MeterRecordPage() {
 
         {/* Komentar */}
         {meter.hasNotes && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-            <h2 className="font-semibold text-gray-800 mb-3">💬 Komentar</h2>
+          <div style={card}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px' }}>💬 Komentar</h3>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={3}
               placeholder="Tuliskan catatan, temuan, atau masalah yang ditemukan..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              style={{ ...fieldInput, resize: 'none' }}
             />
           </div>
         )}
 
         {/* Inspector */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <h2 className="font-semibold text-gray-800 mb-3">👤 Inspector</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {INSPECTOR_OPTIONS.map(name => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => setInspector(name)}
-                className={`py-2 px-2 rounded-lg text-sm font-medium border transition-colors ${
-                  inspector === name
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {name}
-              </button>
-            ))}
+        <div style={card}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px' }}>👤 Inspector</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+            {INSPECTOR_OPTIONS.map(name => {
+              const isActive = inspector === name
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setInspector(name)}
+                  style={{
+                    padding: '10px', borderRadius: '6px', fontSize: '14px', fontWeight: 600,
+                    cursor: 'pointer',
+                    background: isActive ? 'var(--primary)' : 'white',
+                    color: isActive ? 'white' : 'var(--text-primary)',
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  {name}
+                </button>
+              )
+            })}
           </div>
         </div>
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
-            <p className="text-red-700 text-sm">❌ {error}</p>
+          <div style={{ background: '#f8d7da', color: '#721c24', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid #f5c6cb' }}>
+            <strong>⚠️ Error:</strong> {error}
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-3 justify-end pb-8">
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginBottom: '24px', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => { setReadings({}); setNotes(''); setInspector(''); setError(''); setSuccess(false) }}
-            className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50"
+            style={btnNeutral}
           >
             Reset
           </button>
@@ -323,17 +369,17 @@ export default function MeterRecordPage() {
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="px-6 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            style={{ ...btnGold, opacity: loading ? 0.6 : 1 }}
           >
             {loading ? 'Menyimpan...' : '✓ Submit'}
           </button>
         </div>
 
-        {/* Table */}
-        <div ref={tableRef} id="table-meter-records" className="bg-white rounded-xl border border-gray-200 p-4">
-          <h3 className="font-semibold text-gray-800 mb-3">📊 Riwayat</h3>
-          <div className="text-xs text-gray-600">
-            <p>Data akan tampil setelah submit</p>
+        {/* Table / Riwayat */}
+        <div ref={tableRef} id="table-meter-records" style={{ ...card, marginBottom: 0 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px' }}>📊 Riwayat</h3>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <p style={{ margin: 0 }}>Data akan tampil setelah submit</p>
           </div>
         </div>
 

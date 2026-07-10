@@ -1,3 +1,5 @@
+@import "tailwindcss";
+ 
 :root {
   --primary: #0a3047;
   --primary-light: #1e3a5f;
@@ -14,29 +16,24 @@
   --danger: #e74c3c;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
-
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
   background-color: var(--bg-main);
   color: var(--text-primary);
   line-height: 1.6;
 }
-
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   color: var(--primary);
 }
-
 button {
   font-family: inherit;
 }
-
 input, select, textarea {
   font-family: inherit;
 }
