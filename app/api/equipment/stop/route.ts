@@ -13,12 +13,10 @@ export async function POST(request: NextRequest) {
         }
       }
     )
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { equipment_type, equipment_name } = await request.json()
-
     if (!equipment_type || !equipment_name) {
       return NextResponse.json({ error: 'equipment_type dan equipment_name wajib diisi' }, { status: 400 })
     }
@@ -40,7 +38,7 @@ export async function POST(request: NextRequest) {
     const durationMinutes = Math.round((now.getTime() - startedAt.getTime()) / 60000)
     const durationHours = durationMinutes / 60
 
-    await supabase.from('running_hours_logs').insert({
+    const { error: insertError } = await supabase.from('running_hours_logs').insert({
       equipment_type,
       equipment_name,
       tanggal: now.toISOString().split('T')[0],
@@ -54,7 +52,15 @@ export async function POST(request: NextRequest) {
       created_at: now.toISOString()
     })
 
-    await supabase
+    if (insertError) {
+      console.error('GAGAL INSERT running_hours_logs:', insertError)
+      return NextResponse.json(
+        { error: 'Gagal menyimpan log durasi: ' + insertError.message },
+        { status: 500 }
+      )
+    }
+
+    const { error: updateError } = await supabase
       .from('equipment_status')
       .update({
         status: 'off',
@@ -67,12 +73,21 @@ export async function POST(request: NextRequest) {
       .eq('equipment_type', equipment_type)
       .eq('equipment_name', equipment_name)
 
+    if (updateError) {
+      console.error('GAGAL UPDATE equipment_status ke OFF:', updateError)
+      return NextResponse.json(
+        { error: 'Log tersimpan tapi gagal update status mesin: ' + updateError.message },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json({
       success: true,
       duration_hours: durationHours.toFixed(2),
       duration_minutes: durationMinutes
     })
   } catch (err: any) {
+    console.error('UNCAUGHT ERROR /api/equipment/stop:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
