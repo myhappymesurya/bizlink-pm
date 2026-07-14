@@ -240,6 +240,9 @@ export default function MeterRecordPage() {
             >
               📥 Export PDF
             </button>
+            <a href="/meter-record/rekap" style={{ ...btnPrimary, backgroundColor: 'var(--secondary)', color: 'var(--primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+              📊 Rekapitulasi
+            </a>
           </div>
         </div>
 
