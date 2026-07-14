@@ -234,12 +234,6 @@ export default function MeterRecordPage() {
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => exportTablePDF('table-meter-records', 'Meter-Records', `${meter.name} Records`)}
-              style={btnPrimary}
-            >
-              📥 Export PDF
-            </button>
             <a href="/meter-record/rekap" style={{ ...btnPrimary, backgroundColor: 'var(--secondary)', color: 'var(--primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
               📊 Rekapitulasi
             </a>
