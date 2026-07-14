@@ -454,7 +454,8 @@ const items = category === 'Fire Extinguisher' && assetType === 'CO2'
       year,
       month,
       location: asset?.location || '',
-      notes: catatan || (isFreqBased ? `Frekuensi: ${frequency}` : ''),
+      frequency: isFreqBased ? frequency : 'Monthly',
+      notes: catatan || '',
       submitted_at: now.toISOString(),
     }).select().single()
 
@@ -462,30 +463,12 @@ const items = category === 'Fire Extinguisher' && assetType === 'CO2'
       await supabase.from('checklist_items').insert(
         items.map(label => ({ submission_id: sub.id, label, result: checks[label] ? 'OK' : 'NOK' }))
       )
-      setCatatan('')
-      setSaved(true)
-      setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
     }
-    // Auto-update PM Schedule
-const freqToUpdate = isFreqBased ? frequency : 'Monthly'
-const freqDays: Record<string, number> = {
-  'Daily': 1, 'Weekly': 7, 'Bi Weekly': 14, 'Monthly': 30,
-  'Quarterly': 90, 'Bi Annually': 180, 'Annually': 365,
-}
-const nextDue = new Date(now.getTime() + (freqDays[freqToUpdate] || 30) * 86400000)
 
-await supabase.from('pm_schedules')
-  .update({
-    last_done_at: now.toISOString(),
-    next_due_date: nextDue.toISOString().split('T')[0],
-  })
-  .eq('asset_id', selectedAsset)
-  .eq('sub_category', category)
-  .eq('frequency', freqToUpdate)
-
-setCatatan('')
-setSaved(true)
-setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
+    setSaving(false)
+    setCatatan('')
+    setSaved(true)
+    setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
   }
 
   return (

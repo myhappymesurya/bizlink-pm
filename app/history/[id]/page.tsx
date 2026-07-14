@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
+import { updatePmSchedule } from '@/lib/pmSchedule'
 
 type Submission = {
   id: string
@@ -15,6 +16,7 @@ type Submission = {
   year: number
   submitted_at: string
   approved_at: string | null
+  frequency: string
 }
 
 type Item = {
@@ -47,10 +49,18 @@ export default function DetailPage() {
   }, [id])
 
   async function handleApprove() {
-    await supabase.from('checklist_submissions').update({
+    const { error } = await supabase.from('checklist_submissions').update({
       status: 'approved',
       approved_at: new Date().toISOString(),
     }).eq('id', id)
+
+    if (!error && sub) {
+      await updatePmSchedule(supabase, {
+        asset_id: sub.asset_id,
+        sub_category: sub.sub_category,
+        frequency: sub.frequency,
+      })
+    }
     window.location.reload()
   }
 

@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
+import { updatePmSchedule } from '@/lib/pmSchedule'
 
 type Submission = {
   id: string
@@ -15,6 +16,7 @@ type Submission = {
   year: number
   submitted_at: string
   notes: string
+  frequency: string
 }
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -60,34 +62,53 @@ export default function HistoryPage() {
   }
 
   async function handleApprove(id: string) {
-    await supabase.from('checklist_submissions').update({
+    const sub = submissions.find(s => s.id === id)
+    const { error } = await supabase.from('checklist_submissions').update({
       status: 'approved',
       approved_at: new Date().toISOString(),
     }).eq('id', id)
+
+    if (!error && sub) {
+      await updatePmSchedule(supabase, {
+        asset_id: sub.asset_id,
+        sub_category: sub.sub_category,
+        frequency: sub.frequency,
+      })
+    }
     loadHistory()
   }
+
   async function handleCorrective(id: string) {
-  if (!correctiveText.trim()) return
-  setSavingCorrective(true)
-  const { data: { session } } = await supabase.auth.getSession()
-  
-  await supabase.from('corrective_actions').insert({
-    submission_id: id,
-    description: correctiveText,
-    created_by: session?.user.id,
-    created_at: new Date().toISOString()
-  })
-  
-  await supabase.from('checklist_submissions').update({
-    status: 'corrected',
-    approved_at: new Date().toISOString()
-  }).eq('id', id)
-  
-  setCorrectiveId(null)
-  setCorrectiveText('')
-  setSavingCorrective(false)
-  loadHistory()
-}
+    if (!correctiveText.trim()) return
+    setSavingCorrective(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    const sub = submissions.find(s => s.id === id)
+
+    await supabase.from('corrective_actions').insert({
+      submission_id: id,
+      description: correctiveText,
+      created_by: session?.user.id,
+      created_at: new Date().toISOString()
+    })
+
+    const { error } = await supabase.from('checklist_submissions').update({
+      status: 'corrected',
+      approved_at: new Date().toISOString()
+    }).eq('id', id)
+
+    if (!error && sub) {
+      await updatePmSchedule(supabase, {
+        asset_id: sub.asset_id,
+        sub_category: sub.sub_category,
+        frequency: sub.frequency,
+      })
+    }
+
+    setCorrectiveId(null)
+    setCorrectiveText('')
+    setSavingCorrective(false)
+    loadHistory()
+  }
 
   function handlePrint() {
     const content = printRef.current
