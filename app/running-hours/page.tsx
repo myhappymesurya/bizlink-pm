@@ -288,23 +288,33 @@ export default function RunningHoursPage() {
   const onStatus = statuses.filter(s => s.status === 'on')
   const offStatus = statuses.filter(s => s.status === 'off')
 
+  const card: React.CSSProperties = {
+    background: 'var(--bg-card)', borderRadius: 8, boxShadow: 'var(--shadow)', padding: 24
+  }
+  const fieldInput: React.CSSProperties = {
+    width: '100%', padding: 8, border: '1px solid var(--border)', borderRadius: 4
+  }
+  const fieldLabel: React.CSSProperties = {
+    fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 4
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f6f7' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Navbar />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#0a3047', margin: 0 }}>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>
               Running Hours Monitor
             </h1>
-            <p style={{ color: '#7f8c8d', fontSize: '14px', marginTop: 4 }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: 4 }}>
               Status real-time semua equipment — refresh otomatis setiap 30 detik
             </p>
           </div>
           <a href="/running-hours/rekap" style={{
             padding: '10px 20px',
-            background: '#d4af37',
-            color: '#0a3047',
+            background: 'var(--secondary)',
+            color: 'var(--primary)',
             textDecoration: 'none',
             borderRadius: 6,
             fontWeight: 600,
@@ -316,47 +326,47 @@ export default function RunningHoursPage() {
         </div>
 
         {error && (
-          <div style={{ background: '#fdecea', color: '#e74c3c', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
+          <div style={{ background: '#fdecea', color: 'var(--danger)', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
             {error}
           </div>
         )}
         {success && (
-          <div style={{ background: '#eafaf1', color: '#27ae60', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
+          <div style={{ background: '#eafaf1', color: 'var(--success)', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
             {success}
           </div>
         )}
 
         {/* STATUS MONITOR */}
-        <div style={{ background: 'white', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: 24, marginBottom: 32 }}>
+        <div style={{ ...card, marginBottom: 32 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0a3047', margin: 0 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--primary)', margin: 0 }}>
               Status Equipment
             </h2>
             <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
-              <span style={{ color: '#27ae60', fontWeight: 600 }}>● ON: {onStatus.length}</span>
-              <span style={{ color: '#7f8c8d' }}>● OFF: {offStatus.length}</span>
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>● ON: {onStatus.length}</span>
+              <span style={{ color: 'var(--text-secondary)' }}>● OFF: {offStatus.length}</span>
             </div>
           </div>
 
           {loading ? (
-            <p style={{ color: '#7f8c8d', fontSize: 14 }}>Memuat status...</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Memuat status...</p>
           ) : (
             EQUIPMENT.map(eq => {
               const units = statuses.filter(s => s.equipment_type === eq.id)
               if (units.length === 0) return null
               return (
                 <div key={eq.id} style={{ marginBottom: 20 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, color: '#2c3e50', marginBottom: 8 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
                     {eq.icon} {eq.name}
                   </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {units.map(unit => (
                       <div key={unit.id} style={{
-                        border: `1px solid ${unit.status === 'on' ? '#27ae60' : '#e0e0e0'}`,
+                        border: `1px solid ${unit.status === 'on' ? 'var(--success)' : 'var(--border)'}`,
                         borderRadius: 8,
                         padding: '12px 16px',
                         minWidth: 200,
-                        background: unit.status === 'on' ? '#f0fdf4' : 'white'
+                        background: unit.status === 'on' ? '#eafaf1' : 'white'
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                           <span style={{ fontSize: 13, fontWeight: 600 }}>{unit.equipment_name}</span>
@@ -365,15 +375,15 @@ export default function RunningHoursPage() {
                             fontWeight: 700,
                             padding: '2px 8px',
                             borderRadius: 12,
-                            background: unit.status === 'on' ? '#27ae60' : '#e0e0e0',
-                            color: unit.status === 'on' ? 'white' : '#7f8c8d'
+                            background: unit.status === 'on' ? 'var(--success)' : 'var(--border)',
+                            color: unit.status === 'on' ? 'white' : 'var(--text-secondary)'
                           }}>
                             {unit.status === 'on' ? 'ON' : 'OFF'}
                           </span>
                         </div>
 
                         {unit.status === 'on' && unit.started_at && (
-                          <div style={{ fontSize: 12, color: '#7f8c8d', marginBottom: 8 }}>
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
                             ⏱ {getDuration(unit.started_at)}
                           </div>
                         )}
@@ -390,7 +400,7 @@ export default function RunningHoursPage() {
                               }}
                               style={{
                                 padding: '4px 10px',
-                                background: '#2d9cca',
+                                background: 'var(--accent)',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: 4,
@@ -406,7 +416,7 @@ export default function RunningHoursPage() {
                               disabled={submitting}
                               style={{
                                 padding: '4px 10px',
-                                background: '#e74c3c',
+                                background: 'var(--danger)',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: 4,
@@ -436,7 +446,7 @@ export default function RunningHoursPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
           }}>
             <div style={{ background: 'white', padding: 24, borderRadius: 8, width: 400, maxWidth: '90%' }}>
-              <h3 style={{ color: '#0a3047', marginBottom: 16 }}>Input Measurements</h3>
+              <h3 style={{ color: 'var(--primary)', marginBottom: 16 }}>Input Measurements</h3>
               {(() => {
                 const [type, name] = showMeasurements.split('__')
                 const measConfig = EQUIPMENT.find(e => e.id === type)
@@ -445,26 +455,26 @@ export default function RunningHoursPage() {
                   <>
                     {measConfig.measurements.map(m => (
                       <div key={m.key} style={{ marginBottom: 12 }}>
-                        <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>{m.label}</label>
+                        <label style={fieldLabel}>{m.label}</label>
                         <input
                           type="text"
                           value={measInput[m.key] || ''}
                           onChange={e => setMeasInput(prev => ({ ...prev, [m.key]: e.target.value }))}
-                          style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                          style={fieldInput}
                         />
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                       <button
                         onClick={() => { setShowMeasurements(null); setMeasInput({}) }}
-                        style={{ flex: 1, padding: 10, background: '#7f8c8d', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                        style={{ flex: 1, padding: 10, background: 'var(--text-secondary)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
                       >
                         Batal
                       </button>
                       <button
                         onClick={() => handleSaveMeasurements(type, name)}
                         disabled={savingMeas}
-                        style={{ flex: 1, padding: 10, background: '#0a3047', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                        style={{ flex: 1, padding: 10, background: 'var(--primary)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
                       >
                         {savingMeas ? 'Menyimpan...' : 'Simpan'}
                       </button>
@@ -477,18 +487,18 @@ export default function RunningHoursPage() {
         )}
 
         {/* FORM OPERASI */}
-        <div style={{ background: 'white', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0a3047', marginBottom: 20 }}>
+        <div style={card}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--primary)', marginBottom: 20 }}>
             Operasi Mesin
           </h2>
 
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 200px' }}>
-              <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Tipe Equipment</label>
+              <label style={fieldLabel}>Tipe Equipment</label>
               <select
                 value={selectedType}
                 onChange={e => setSelectedType(e.target.value)}
-                style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                style={fieldInput}
               >
                 {EQUIPMENT.map(e => (
                   <option key={e.id} value={e.id}>{e.icon} {e.name}</option>
@@ -496,11 +506,11 @@ export default function RunningHoursPage() {
               </select>
             </div>
             <div style={{ flex: '1 1 200px' }}>
-              <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>{config.unitLabel}</label>
+              <label style={fieldLabel}>{config.unitLabel}</label>
               <select
                 value={selectedUnit}
                 onChange={e => setSelectedUnit(e.target.value)}
-                style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+                style={fieldInput}
               >
                 {config.units.map(u => (
                   <option key={u} value={u}>{u}</option>
@@ -509,14 +519,13 @@ export default function RunningHoursPage() {
             </div>
           </div>
 
-          {/* Cek status unit yang dipilih */}
           {(() => {
             const unitStatus = statuses.find(
               s => s.equipment_type === selectedType && s.equipment_name === selectedUnit
             )
             if (unitStatus?.status === 'on') {
               return (
-                <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6, padding: 12, fontSize: 14, color: '#856404' }}>
+                <div style={{ background: '#fff8e6', border: '1px solid var(--warning)', borderRadius: 6, padding: 12, fontSize: 14, color: 'var(--warning)' }}>
                   ⚠️ {selectedUnit} sedang dalam status ON sejak {unitStatus.started_at ? new Date(unitStatus.started_at).toLocaleString('id-ID') : '-'}.
                   Gunakan tombol Stop di Status Monitor untuk mematikan mesin ini.
                 </div>
@@ -524,7 +533,7 @@ export default function RunningHoursPage() {
             }
             return (
               <>
-                <h3 style={{ fontSize: 14, fontWeight: 600, color: '#2c3e50', marginBottom: 12 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>
                   Checklist Sebelum Nyalakan ({config.checklist.filter(i => checks[i]).length}/{config.checklist.length})
                 </h3>
                 {config.checklist.map(item => (
@@ -534,14 +543,14 @@ export default function RunningHoursPage() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
                       borderRadius: 6, marginBottom: 6, cursor: 'pointer',
-                      background: checks[item] ? '#f0fdf4' : '#fafafa',
-                      border: checks[item] ? '1px solid #bbf7d0' : '1px solid #e0e0e0'
+                      background: checks[item] ? '#eafaf1' : 'var(--bg-main)',
+                      border: checks[item] ? '1px solid var(--success)' : '1px solid var(--border-light)'
                     }}
                   >
                     <div style={{
                       width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                      background: checks[item] ? '#27ae60' : 'white',
-                      border: checks[item] ? 'none' : '2px solid #ddd',
+                      background: checks[item] ? 'var(--success)' : 'white',
+                      border: checks[item] ? 'none' : '2px solid var(--border)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       color: 'white', fontSize: 12
                     }}>
@@ -556,8 +565,8 @@ export default function RunningHoursPage() {
                   disabled={!allChecked || submitting}
                   style={{
                     marginTop: 16, width: '100%', padding: 12,
-                    background: allChecked ? '#27ae60' : '#e0e0e0',
-                    color: allChecked ? 'white' : '#7f8c8d',
+                    background: allChecked ? 'var(--success)' : '#e0e0e0',
+                    color: allChecked ? 'white' : 'var(--text-secondary)',
                     border: 'none', borderRadius: 6, cursor: allChecked ? 'pointer' : 'not-allowed',
                     fontSize: 14, fontWeight: 600, transition: 'background 0.2s'
                   }}
