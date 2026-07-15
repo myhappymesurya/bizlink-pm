@@ -126,6 +126,12 @@ export default function PMCalendarPage() {
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>Jadwal preventive maintenance</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <a href="/pm-calendar/tracker" style={{
+              padding: '10px 16px', background: 'var(--accent)', color: 'white',
+              textDecoration: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600
+            }}>
+              📊 Tracker Kategori
+            </a>
             {userRole === 'admin' && (
               <a href="/pm-calendar/manage" style={{
                 padding: '10px 16px', background: 'var(--primary)', color: 'white',
