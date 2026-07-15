@@ -19,6 +19,25 @@ type Submission = {
   frequency: string
 }
 
+type AdhocInstance = {
+  id: string
+  scheduled_date: string
+  status: 'pending' | 'completed' | 'skipped'
+  notes: string | null
+  pm_tasks: { title: string; description: string | null; frequency: string } | null
+}
+
+type UnifiedRow = {
+  key: string
+  type: 'checklist' | 'adhoc'
+  displayDate: string
+  title: string
+  subtitle: string
+  location: string
+  status: string
+  original: Submission | AdhocInstance
+}
+
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const YEARS = [2024, 2025, 2026, 2027]
 
@@ -32,32 +51,56 @@ const CATEGORIES_MAP: Record<string, string[]> = {
 export default function HistoryPage() {
   const supabase = createClient()
   const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [adhocInstances, setAdhocInstances] = useState<AdhocInstance[]>([])
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState('all')
   const [month, setMonth] = useState('')
   const [year, setYear] = useState('')
+  const [dayFilter, setDayFilter] = useState('')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [subCategory, setSubCategory] = useState('')
+  const [showAdhoc, setShowAdhoc] = useState(true)
   const [correctiveId, setCorrectiveId] = useState<string | null>(null)
   const [correctiveText, setCorrectiveText] = useState('')
   const [savingCorrective, setSavingCorrective] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { loadHistory() }, [status, month, year, category, subCategory])
+  useEffect(() => { loadHistory() }, [status, month, year, category, subCategory, dayFilter])
   useEffect(() => { setSubCategory('') }, [category])
 
   async function loadHistory() {
     setLoading(true)
+
     let query = supabase.from('checklist_submissions').select('*')
       .order('submitted_at', { ascending: false })
-    if (status !== 'all') query = query.eq('status', status)
-    if (month) query = query.eq('month', month)
-    if (year) query = query.eq('year', parseInt(year))
+    if (status !== 'all' && ['ok','nok','corrected','approved'].includes(status)) query = query.eq('status', status)
+    if (!dayFilter) {
+      if (month) query = query.eq('month', month)
+      if (year) query = query.eq('year', parseInt(year))
+    }
     if (category) query = query.eq('category', category)
     if (subCategory) query = query.eq('sub_category', subCategory)
-    const { data } = await query
-    setSubmissions(data || [])
+    const { data: subs } = await query
+    setSubmissions(subs || [])
+
+    // Ad-hoc: hanya diambil kalau tidak ada filter kategori (ad-hoc tidak punya kategori)
+    if (!category) {
+      let adhocQuery = supabase.from('pm_task_instances')
+        .select('id, scheduled_date, status, notes, pm_tasks(title, description, frequency)')
+        .order('scheduled_date', { ascending: false })
+      if (dayFilter) {
+        adhocQuery = adhocQuery.eq('scheduled_date', dayFilter)
+      } else if (year) {
+        const y = year
+        adhocQuery = adhocQuery.gte('scheduled_date', `${y}-01-01`).lte('scheduled_date', `${y}-12-31`)
+      }
+      const { data: adhoc } = await adhocQuery
+      setAdhocInstances((adhoc as any) || [])
+    } else {
+      setAdhocInstances([])
+    }
+
     setLoading(false)
   }
 
@@ -118,7 +161,7 @@ export default function HistoryPage() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Riwayat Checklist PM — BizLink</title>
+          <title>Riwayat — BizLink</title>
           <style>
             body { font-family: Arial, sans-serif; font-size: 12px; padding: 20px; }
             h2 { font-size: 16px; margin-bottom: 4px; }
@@ -127,48 +170,28 @@ export default function HistoryPage() {
             th { background: #f0f0f0; padding: 8px; text-align: left; border: 1px solid #ddd; font-size: 11px; }
             td { padding: 7px 8px; border: 1px solid #ddd; font-size: 11px; }
             tr:nth-child(even) { background: #fafafa; }
-            .ok { color: green; font-weight: bold; }
-            .nok { color: red; font-weight: bold; }
-            .approved { color: blue; font-weight: bold; }
             @media print { button { display: none; } }
-            .corrected { color: orange; font-weight: bold; }
           </style>
         </head>
         <body>
-          <h2>Riwayat Checklist PM — BizLink PM System</h2>
+          <h2>Riwayat Kerja PM — BizLink PM System</h2>
           <div class="meta">
-            ${category ? `Kategori: ${category}` : 'Semua Kategori'} 
-            ${subCategory ? `| Sub-kategori: ${subCategory}` : ''} 
-            ${month ? `| Bulan: ${month}` : ''} 
-            ${year ? `| Tahun: ${year}` : ''} 
-            | Status: ${status === 'all' ? 'Semua' : status.toUpperCase()}
+            ${dayFilter ? `Tanggal: ${dayFilter}` : `${month || 'Semua Bulan'} ${year || 'Semua Tahun'}`}
             | Dicetak: ${new Date().toLocaleString('id-ID')}
-            | Total: ${filtered.length} record
+            | Total: ${combined.length} record
           </div>
           <table>
             <thead>
-              <tr>
-                <th>Waktu</th>
-                <th>Bulan/Tahun</th>
-                <th>Unit</th>
-                <th>Sub Kategori</th>
-                <th>Lokasi</th>
-                <th>Inspector</th>
-                <th>Frekuensi</th>
-                <th>Status</th>
-              </tr>
+              <tr><th>Tanggal</th><th>Jenis</th><th>Judul/Unit</th><th>Detail</th><th>Status</th></tr>
             </thead>
             <tbody>
-              ${filtered.map(s => `
+              ${combined.map(r => `
                 <tr>
-                  <td>${new Date(s.submitted_at).toLocaleString('id-ID')}</td>
-                  <td>${s.month} ${s.year}</td>
-                  <td>${s.asset_id}</td>
-                  <td>${s.sub_category}</td>
-                  <td>${s.location || '—'}</td>
-                  <td>${s.inspector}</td>
-                  <td>${s.notes ? s.notes.replace('Frekuensi: ','') : '—'}</td>
-                  <td class="${s.status}">${s.status === 'ok' ? '✓ OK' : s.status === 'approved' ? '✓ Approved' : s.status === 'corrected' ? '⚡ Corrected' : '✗ NOK'}</td>
+                  <td>${r.displayDate}</td>
+                  <td>${r.type === 'checklist' ? 'PM Rutin' : 'Ad-hoc'}</td>
+                  <td>${r.title}</td>
+                  <td>${r.subtitle}</td>
+                  <td>${r.status}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -181,13 +204,43 @@ export default function HistoryPage() {
     setTimeout(() => { printWindow.print() }, 500)
   }
 
-  const filtered = submissions.filter(s =>
-    search === '' ||
-    s.asset_id.toLowerCase().includes(search.toLowerCase()) ||
-    s.location.toLowerCase().includes(search.toLowerCase()) ||
-    s.sub_category.toLowerCase().includes(search.toLowerCase()) ||
-    s.inspector.toLowerCase().includes(search.toLowerCase())
-  )
+  // Gabungkan dua sumber jadi satu daftar seragam
+  const unifiedChecklist: UnifiedRow[] = submissions.map(s => ({
+    key: `cs-${s.id}`,
+    type: 'checklist',
+    displayDate: s.submitted_at.split('T')[0],
+    title: s.asset_id,
+    subtitle: s.sub_category,
+    location: s.location || '—',
+    status: s.status,
+    original: s,
+  }))
+
+  const unifiedAdhoc: UnifiedRow[] = showAdhoc ? adhocInstances.map(a => ({
+    key: `ad-${a.id}`,
+    type: 'adhoc',
+    displayDate: a.scheduled_date,
+    title: a.pm_tasks?.title || '(tugas dihapus)',
+    subtitle: a.pm_tasks?.description || '',
+    location: '—',
+    status: a.status,
+    original: a,
+  })) : []
+
+  const combined = [...unifiedChecklist, ...unifiedAdhoc]
+    .filter(r => search === '' ||
+      r.title.toLowerCase().includes(search.toLowerCase()) ||
+      r.subtitle.toLowerCase().includes(search.toLowerCase()) ||
+      (r.type === 'checklist' && (r.original as Submission).inspector.toLowerCase().includes(search.toLowerCase()))
+    )
+    .filter(r => {
+      if (status === 'all') return true
+      if (status === 'pending' || status === 'completed' || status === 'skipped') {
+        return r.type === 'adhoc' && r.status === status
+      }
+      return r.type === 'checklist' && r.status === status
+    })
+    .sort((a, b) => b.displayDate.localeCompare(a.displayDate))
 
   const tabs = [
     { key: 'all', label: 'Semua' },
@@ -195,6 +248,8 @@ export default function HistoryPage() {
     { key: 'nok', label: '✗ NOK' },
     { key: 'corrected', label: '⚡ Corrected' },
     { key: 'approved', label: 'Approved' },
+    { key: 'pending', label: '○ Ad-hoc Pending' },
+    { key: 'completed', label: '✓ Ad-hoc Selesai' },
   ]
 
   const card: React.CSSProperties = {
@@ -205,12 +260,31 @@ export default function HistoryPage() {
     padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '14px'
   }
 
+  function statusBadge(r: UnifiedRow) {
+    if (r.type === 'adhoc') {
+      const map: Record<string, { bg: string; color: string; label: string }> = {
+        pending: { bg: '#fff8e6', color: 'var(--warning)', label: '○ Pending' },
+        completed: { bg: '#eafaf1', color: 'var(--success)', label: '✓ Selesai' },
+        skipped: { bg: '#e2e3e5', color: '#383d41', label: '— Dilewati' },
+      }
+      const s = map[r.status] || map.pending
+      return { ...s }
+    }
+    const map: Record<string, { bg: string; color: string; label: string }> = {
+      ok: { bg: '#eafaf1', color: 'var(--success)', label: '✓ OK' },
+      approved: { bg: '#e8f4f8', color: 'var(--accent)', label: '✓ Approved' },
+      corrected: { bg: '#fff8e6', color: 'var(--warning)', label: '⚡ Corrected' },
+      nok: { bg: '#fdecea', color: 'var(--danger)', label: '✗ NOK' },
+    }
+    return map[r.status] || map.nok
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Navbar />
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Riwayat Checklist</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Riwayat Kerja</h1>
           <button onClick={handlePrint}
             style={{ padding: '10px 20px', background: 'var(--primary)', color: 'white',
               border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px',
@@ -222,37 +296,61 @@ export default function HistoryPage() {
         {/* Filter bar */}
         <div style={card}>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Tanggal Spesifik</label>
+              <input type="date" value={dayFilter} onChange={e => setDayFilter(e.target.value)} style={fieldInput} />
+            </div>
 
-            <select value={category} onChange={e => setCategory(e.target.value)} style={fieldInput}>
-              <option value="">Semua Kategori</option>
-              {Object.keys(CATEGORIES_MAP).map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Kategori</label>
+              <select value={category} onChange={e => setCategory(e.target.value)} style={fieldInput} disabled={!!dayFilter}>
+                <option value="">Semua Kategori</option>
+                {Object.keys(CATEGORIES_MAP).map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
 
             {category && (
-              <select value={subCategory} onChange={e => setSubCategory(e.target.value)} style={fieldInput}>
-                <option value="">Semua Sub-kategori</option>
-                {CATEGORIES_MAP[category].map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Sub-kategori</label>
+                <select value={subCategory} onChange={e => setSubCategory(e.target.value)} style={fieldInput}>
+                  <option value="">Semua Sub-kategori</option>
+                  {CATEGORIES_MAP[category].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
             )}
 
-            <select value={month} onChange={e => setMonth(e.target.value)} style={fieldInput}>
-              <option value="">Semua Bulan</option>
-              {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Bulan</label>
+              <select value={month} onChange={e => setMonth(e.target.value)} style={fieldInput} disabled={!!dayFilter}>
+                <option value="">Semua Bulan</option>
+                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
 
-            <select value={year} onChange={e => setYear(e.target.value)} style={fieldInput}>
-              <option value="">Semua Tahun</option>
-              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Tahun</label>
+              <select value={year} onChange={e => setYear(e.target.value)} style={fieldInput} disabled={!!dayFilter}>
+                <option value="">Semua Tahun</option>
+                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>&nbsp;</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, padding: '10px 4px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={showAdhoc} onChange={e => setShowAdhoc(e.target.checked)} />
+                Tampilkan tugas ad-hoc
+              </label>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <input placeholder="🔍 Cari unit, lokasi, inspector..."
+            <input placeholder="🔍 Cari unit, tugas, lokasi, inspector..."
               value={search} onChange={e => setSearch(e.target.value)}
               style={{ ...fieldInput, flex: 1 }} />
 
-            {(month || year || search || category || subCategory) && (
-              <button onClick={() => { setMonth(''); setYear(''); setSearch(''); setCategory(''); setSubCategory('') }}
+            {(month || year || search || category || subCategory || dayFilter) && (
+              <button onClick={() => { setMonth(''); setYear(''); setSearch(''); setCategory(''); setSubCategory(''); setDayFilter('') }}
                 style={{ padding: '10px 16px', background: 'var(--text-secondary)', color: 'white', border: 'none',
                   borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 Reset Filter
@@ -265,7 +363,7 @@ export default function HistoryPage() {
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
           {tabs.map(tab => (
             <button key={tab.key} onClick={() => setStatus(tab.key)}
-              style={{ padding: '8px 18px', border: 'none', borderRadius: '20px',
+              style={{ padding: '8px 16px', border: 'none', borderRadius: '20px',
                 cursor: 'pointer', fontSize: '13px', fontWeight: 600,
                 background: status === tab.key ? 'var(--primary)' : 'var(--bg-card)',
                 color: status === tab.key ? 'white' : 'var(--text-primary)',
@@ -280,81 +378,75 @@ export default function HistoryPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ background: 'var(--primary)', color: 'white' }}>
-                {['Waktu','Bulan/Tahun','Unit','Sub Kategori','Lokasi','Inspector','Frekuensi','Status','Aksi'].map(h => (
-                  <th key={h} style={{ padding: '14px 16px', textAlign: 'left',
-                    fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
+                {['Tanggal','Jenis','Unit/Tugas','Detail','Status','Aksi'].map(h => (
+                  <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading...</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>Tidak ada data</td></tr>
-              ) : filtered.map((s, i) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid var(--border-light)',
-                  background: i % 2 === 0 ? 'white' : 'var(--bg-main)' }}>
-                  <td style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontSize: '12px', whiteSpace: 'nowrap' }}>
-                    {new Date(s.submitted_at).toLocaleString('id-ID')}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', whiteSpace: 'nowrap' }}>
-                    {s.month} {s.year}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>
-                    <a href={`/history/${s.id}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>{s.asset_id}</a>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>{s.sub_category}</td>
-                  <td style={{ padding: '12px 16px' }}>{s.location || '—'}</td>
-                  <td style={{ padding: '12px 16px' }}>{s.inspector}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    {s.notes ? s.notes.replace('Frekuensi: ','') : '—'}
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span style={{
-                      background: s.status==='ok'?'#eafaf1':s.status==='approved'?'#e8f4f8':s.status==='corrected'?'#fff8e6':'#fdecea',
-                      color: s.status==='ok'?'var(--success)':s.status==='approved'?'var(--accent)':s.status==='corrected'?'var(--warning)':'var(--danger)',
-                      padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600
-                    }}>
-                      {s.status==='ok'?'✓ OK':s.status==='approved'?'✓ Approved':s.status==='corrected'?'⚡ Corrected':'✗ NOK'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    {s.status === 'ok' && (
-                      <button onClick={() => handleApprove(s.id)}
-                        style={{ padding: '6px 14px', background: 'var(--accent)', color: 'white',
-                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
-                        Approve
-                      </button>
-                    )}
-                    {s.status === 'approved' && (
-                      <span style={{ color: 'var(--success)', fontSize: '12px', fontWeight: 600 }}>✓ Done</span>
-                    )}
-                    {s.status === 'nok' && (
-                      <button onClick={() => { setCorrectiveId(s.id); setCorrectiveText('') }}
-                        style={{ padding: '6px 14px', background: 'var(--warning)', color: 'white',
-                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
-                        Corrective Action
-                      </button>
-                    )}
-                    {s.status === 'corrected' && (
-                      <a href={`/history/${s.id}`}
-                        style={{ color: 'var(--warning)', fontSize: '12px', textDecoration: 'none', fontWeight: 600 }}>
-                        ⚡ Lihat Detail
-                      </a>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading...</td></tr>
+              ) : combined.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>Tidak ada data</td></tr>
+              ) : combined.map((r, i) => {
+                const badge = statusBadge(r)
+                return (
+                  <tr key={r.key} style={{ borderBottom: '1px solid var(--border-light)', background: i % 2 === 0 ? 'white' : 'var(--bg-main)' }}>
+                    <td style={{ padding: '12px 16px', fontSize: '12px', whiteSpace: 'nowrap' }}>{r.displayDate}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '12px' }}>
+                      <span style={{
+                        padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600,
+                        background: r.type === 'checklist' ? '#e8f4f8' : '#f3e8fd',
+                        color: r.type === 'checklist' ? 'var(--accent)' : '#8b5cf6'
+                      }}>
+                        {r.type === 'checklist' ? 'PM Rutin' : 'Ad-hoc'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>
+                      {r.type === 'checklist' ? (
+                        <a href={`/history/${r.key.replace('cs-', '')}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>{r.title}</a>
+                      ) : r.title}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>{r.subtitle}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ background: badge.bg, color: badge.color, padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>
+                        {badge.label}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      {r.type === 'adhoc' ? (
+                        <a href="/pm-calendar" style={{ color: 'var(--accent)', fontSize: '12px', textDecoration: 'none', fontWeight: 600 }}>
+                          📅 Lihat Kalender
+                        </a>
+                      ) : r.status === 'ok' ? (
+                        <button onClick={() => handleApprove((r.original as Submission).id)}
+                          style={{ padding: '6px 14px', background: 'var(--accent)', color: 'white',
+                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                          Approve
+                        </button>
+                      ) : r.status === 'approved' ? (
+                        <span style={{ color: 'var(--success)', fontSize: '12px', fontWeight: 600 }}>✓ Done</span>
+                      ) : r.status === 'nok' ? (
+                        <button onClick={() => { setCorrectiveId((r.original as Submission).id); setCorrectiveText('') }}
+                          style={{ padding: '6px 14px', background: 'var(--warning)', color: 'white',
+                            border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                          Corrective Action
+                        </button>
+                      ) : r.status === 'corrected' ? (
+                        <a href={`/history/${(r.original as Submission).id}`}
+                          style={{ color: 'var(--warning)', fontSize: '12px', textDecoration: 'none', fontWeight: 600 }}>
+                          ⚡ Lihat Detail
+                        </a>
+                      ) : null}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
           <div style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '12px',
-            borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Total: {filtered.length} submission</span>
-            {(category || month || year) && (
-              <span style={{ color: 'var(--primary)', fontWeight: 600 }}>
-                {category} {subCategory} {month} {year}
-              </span>
-            )}
+            borderTop: '1px solid var(--border-light)' }}>
+            Total: {combined.length} record
           </div>
         </div>
       </div>
