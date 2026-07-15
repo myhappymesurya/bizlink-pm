@@ -116,59 +116,67 @@ export default function PMCalendarManagePage() {
     fetchTasks()
   }
 
+  const card: React.CSSProperties = {
+    background: 'var(--bg-card)', borderRadius: '8px', boxShadow: 'var(--shadow)'
+  }
+  const fieldInput: React.CSSProperties = {
+    width: '100%', padding: 8, border: '1px solid var(--border)', borderRadius: 4, fontSize: 14, boxSizing: 'border-box'
+  }
+  const fieldLabel: React.CSSProperties = {
+    fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 4
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f6f7' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Navbar />
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#0a3047', margin: 0 }}>Kelola Tugas PM</h1>
-            <p style={{ color: '#7f8c8d', fontSize: 14, marginTop: 4 }}>Tambah dan kelola jadwal preventive maintenance</p>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Kelola Tugas PM</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 4 }}>Tambah dan kelola jadwal preventive maintenance</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a href="/pm-calendar" style={{ padding: '10px 16px', background: '#f5f6f7', color: '#0a3047', textDecoration: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, border: '1px solid #e0e0e0' }}>
+            <a href="/pm-calendar" style={{ padding: '10px 16px', background: 'var(--bg-main)', color: 'var(--primary)', textDecoration: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }}>
               ← Kalender
             </a>
             <button onClick={handleGenerate} disabled={generating}
-              style={{ padding: '10px 16px', background: '#2d9cca', color: 'white', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: generating ? 0.7 : 1 }}>
+              style={{ padding: '10px 16px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: generating ? 0.7 : 1 }}>
               {generating ? 'Generating...' : '🔄 Generate Instances'}
             </button>
             <button onClick={() => setShowForm(true)}
-              style={{ padding: '10px 16px', background: '#0a3047', color: 'white', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              style={{ padding: '10px 16px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               + Tambah Tugas
             </button>
           </div>
         </div>
 
         {generateMsg && (
-          <div style={{ background: '#eafaf1', color: '#27ae60', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
+          <div style={{ background: '#eafaf1', color: 'var(--success)', padding: 12, borderRadius: 6, marginBottom: 16, fontSize: 14 }}>
             ✓ {generateMsg}
           </div>
         )}
 
-        {/* Form tambah tugas */}
         {showForm && (
-          <div style={{ background: 'white', borderRadius: 8, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 24 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0a3047', marginBottom: 20 }}>Tambah Tugas Baru</h2>
+          <div style={{ ...card, padding: 24, marginBottom: 24 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--primary)', marginBottom: 20 }}>Tambah Tugas Baru</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Judul Tugas *</label>
+                <label style={fieldLabel}>Judul Tugas *</label>
                 <input type="text" value={title} onChange={e => setTitle(e.target.value)}
                   placeholder="Contoh: Cek kompressor harian"
-                  style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' as const }} />
+                  style={fieldInput} />
               </div>
               <div>
-                <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Deskripsi</label>
+                <label style={fieldLabel}>Deskripsi</label>
                 <textarea value={description} onChange={e => setDescription(e.target.value)}
                   placeholder="Detail tugas yang harus dilakukan..."
                   rows={3}
-                  style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4, fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }} />
+                  style={{ ...fieldInput, resize: 'vertical' }} />
               </div>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 150px' }}>
-                  <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Frekuensi</label>
-                  <select value={frequency} onChange={e => setFrequency(e.target.value)}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4, fontSize: 14 }}>
+                  <label style={fieldLabel}>Frekuensi</label>
+                  <select value={frequency} onChange={e => setFrequency(e.target.value)} style={fieldInput}>
                     <option value="one-time">Sekali</option>
                     <option value="daily">Harian</option>
                     <option value="weekly">Mingguan</option>
@@ -177,42 +185,38 @@ export default function PMCalendarManagePage() {
                 </div>
                 {frequency === 'weekly' && (
                   <div style={{ flex: '1 1 150px' }}>
-                    <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Hari</label>
-                    <select value={frequencyDay} onChange={e => setFrequencyDay(Number(e.target.value))}
-                      style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4, fontSize: 14 }}>
+                    <label style={fieldLabel}>Hari</label>
+                    <select value={frequencyDay} onChange={e => setFrequencyDay(Number(e.target.value))} style={fieldInput}>
                       {DAYS_OF_WEEK.map((d, i) => <option key={i} value={i}>{d}</option>)}
                     </select>
                   </div>
                 )}
                 {frequency === 'monthly' && (
                   <div style={{ flex: '1 1 150px' }}>
-                    <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Tanggal</label>
-                    <input type="number" min={1} max={28} value={frequencyDay} onChange={e => setFrequencyDay(Number(e.target.value))}
-                      style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4, fontSize: 14 }} />
+                    <label style={fieldLabel}>Tanggal</label>
+                    <input type="number" min={1} max={28} value={frequencyDay} onChange={e => setFrequencyDay(Number(e.target.value))} style={fieldInput} />
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 150px' }}>
-                  <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Tanggal Mulai *</label>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                    style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4, fontSize: 14 }} />
+                  <label style={fieldLabel}>Tanggal Mulai *</label>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={fieldInput} />
                 </div>
                 {frequency !== 'one-time' && (
                   <div style={{ flex: '1 1 150px' }}>
-                    <label style={{ fontSize: 13, color: '#7f8c8d', display: 'block', marginBottom: 4 }}>Tanggal Selesai (opsional)</label>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                      style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4, fontSize: 14 }} />
+                    <label style={fieldLabel}>Tanggal Selesai (opsional)</label>
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={fieldInput} />
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button onClick={() => setShowForm(false)}
-                  style={{ padding: '8px 16px', background: '#7f8c8d', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                  style={{ padding: '8px 16px', background: 'var(--text-secondary)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>
                   Batal
                 </button>
                 <button onClick={handleSaveTask} disabled={saving || !title.trim()}
-                  style={{ padding: '8px 16px', background: title.trim() ? '#0a3047' : '#e0e0e0', color: 'white', border: 'none', borderRadius: 4, cursor: title.trim() ? 'pointer' : 'not-allowed' }}>
+                  style={{ padding: '8px 16px', background: title.trim() ? 'var(--primary)' : '#e0e0e0', color: 'white', border: 'none', borderRadius: 4, cursor: title.trim() ? 'pointer' : 'not-allowed', fontWeight: 600 }}>
                   {saving ? 'Menyimpan...' : 'Simpan Tugas'}
                 </button>
               </div>
@@ -220,32 +224,31 @@ export default function PMCalendarManagePage() {
           </div>
         )}
 
-        {/* Daftar tugas */}
-        <div style={{ background: 'white', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: '#0a3047', margin: 0 }}>Daftar Tugas ({tasks.length})</h2>
+        <div style={{ ...card, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-light)' }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--primary)', margin: 0 }}>Daftar Tugas ({tasks.length})</h2>
           </div>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#7f8c8d' }}>Memuat...</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Memuat...</div>
           ) : tasks.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#7f8c8d' }}>Belum ada tugas — tambahkan tugas pertama</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Belum ada tugas — tambahkan tugas pertama</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#f5f6f7' }}>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: '#7f8c8d', fontWeight: 600 }}>Judul</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: '#7f8c8d', fontWeight: 600 }}>Frekuensi</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: '#7f8c8d', fontWeight: 600 }}>Mulai</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 13, color: '#7f8c8d', fontWeight: 600 }}>Status</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 13, color: '#7f8c8d', fontWeight: 600 }}>Aksi</th>
+                <tr style={{ background: 'var(--primary)' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: 'white', fontWeight: 600 }}>Judul</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: 'white', fontWeight: 600 }}>Frekuensi</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: 'white', fontWeight: 600 }}>Mulai</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 13, color: 'white', fontWeight: 600 }}>Status</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: 13, color: 'white', fontWeight: 600 }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {tasks.map((task, i) => (
-                  <tr key={task.id} style={{ borderBottom: '1px solid #f0f0f0', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                  <tr key={task.id} style={{ borderBottom: '1px solid var(--border-light)', background: i % 2 === 0 ? 'white' : 'var(--bg-main)' }}>
                     <td style={{ padding: '12px 16px' }}>
                       <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{task.title}</p>
-                      {task.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#7f8c8d' }}>{task.description}</p>}
+                      {task.description && <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>{task.description}</p>}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>
                       {FREQUENCY_LABELS[task.frequency]}
@@ -256,8 +259,8 @@ export default function PMCalendarManagePage() {
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12,
-                        background: task.is_active ? '#d4edda' : '#e2e3e5',
-                        color: task.is_active ? '#155724' : '#383d41'
+                        background: task.is_active ? '#eafaf1' : '#e2e3e5',
+                        color: task.is_active ? 'var(--success)' : '#383d41'
                       }}>
                         {task.is_active ? 'Aktif' : 'Nonaktif'}
                       </span>
@@ -265,11 +268,11 @@ export default function PMCalendarManagePage() {
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                         <button onClick={() => handleToggleActive(task.id, task.is_active)}
-                          style={{ padding: '4px 10px', background: task.is_active ? '#f59e0b' : '#27ae60', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                          style={{ padding: '4px 10px', background: task.is_active ? 'var(--warning)' : 'var(--success)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
                           {task.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                         </button>
                         <button onClick={() => handleDelete(task.id)}
-                          style={{ padding: '4px 10px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                          style={{ padding: '4px 10px', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
                           Hapus
                         </button>
                       </div>
