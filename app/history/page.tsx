@@ -106,9 +106,11 @@ export default function HistoryPage() {
 
   async function handleApprove(id: string) {
     const sub = submissions.find(s => s.id === id)
+    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase.from('checklist_submissions').update({
       status: 'approved',
       approved_at: new Date().toISOString(),
+      approved_by: user?.id,
     }).eq('id', id)
 
     if (!error && sub) {
@@ -136,7 +138,8 @@ export default function HistoryPage() {
 
     const { error } = await supabase.from('checklist_submissions').update({
       status: 'corrected',
-      approved_at: new Date().toISOString()
+      approved_at: new Date().toISOString(),
+      approved_by: session?.user.id,
     }).eq('id', id)
 
     if (!error && sub) {
