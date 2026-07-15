@@ -197,68 +197,64 @@ export default function HistoryPage() {
     { key: 'approved', label: 'Approved' },
   ]
 
+  const card: React.CSSProperties = {
+    background: 'var(--bg-card)', padding: '24px', borderRadius: '8px',
+    boxShadow: 'var(--shadow)', marginBottom: '24px'
+  }
+  const fieldInput: React.CSSProperties = {
+    padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '14px'
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Navbar />
-      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>Riwayat Checklist</h1>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Riwayat Checklist</h1>
           <button onClick={handlePrint}
-            style={{ padding: '8px 18px', background: '#1a73e8', color: 'white',
-              border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px',
-              fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            style={{ padding: '10px 20px', background: 'var(--primary)', color: 'white',
+              border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px',
+              fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
             🖨️ Export PDF
           </button>
         </div>
 
         {/* Filter bar */}
-        <div style={{ background: 'white', padding: '16px 20px', borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <div style={card}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
 
-            {/* Category filter */}
-            <select value={category} onChange={e => setCategory(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}>
+            <select value={category} onChange={e => setCategory(e.target.value)} style={fieldInput}>
               <option value="">Semua Kategori</option>
               {Object.keys(CATEGORIES_MAP).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
 
-            {/* Sub-category filter */}
             {category && (
-              <select value={subCategory} onChange={e => setSubCategory(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}>
+              <select value={subCategory} onChange={e => setSubCategory(e.target.value)} style={fieldInput}>
                 <option value="">Semua Sub-kategori</option>
                 {CATEGORIES_MAP[category].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             )}
 
-            {/* Month filter */}
-            <select value={month} onChange={e => setMonth(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}>
+            <select value={month} onChange={e => setMonth(e.target.value)} style={fieldInput}>
               <option value="">Semua Bulan</option>
               {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
 
-            {/* Year filter */}
-            <select value={year} onChange={e => setYear(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}>
+            <select value={year} onChange={e => setYear(e.target.value)} style={fieldInput}>
               <option value="">Semua Tahun</option>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {/* Search */}
             <input placeholder="🔍 Cari unit, lokasi, inspector..."
               value={search} onChange={e => setSearch(e.target.value)}
-              style={{ flex: 1, padding: '8px 12px', borderRadius: '8px',
-                border: '1px solid #ddd', fontSize: '13px' }} />
+              style={{ ...fieldInput, flex: 1 }} />
 
-            {/* Reset */}
             {(month || year || search || category || subCategory) && (
               <button onClick={() => { setMonth(''); setYear(''); setSearch(''); setCategory(''); setSubCategory('') }}
-                style={{ padding: '8px 14px', background: '#f0f0f0', border: 'none',
-                  borderRadius: '8px', cursor: 'pointer', fontSize: '13px', color: '#666', whiteSpace: 'nowrap' }}>
+                style={{ padding: '10px 16px', background: 'var(--text-secondary)', color: 'white', border: 'none',
+                  borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 Reset Filter
               </button>
             )}
@@ -266,58 +262,58 @@ export default function HistoryPage() {
         </div>
 
         {/* Status tabs */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
           {tabs.map(tab => (
             <button key={tab.key} onClick={() => setStatus(tab.key)}
-              style={{ padding: '7px 16px', border: 'none', borderRadius: '20px',
-                cursor: 'pointer', fontSize: '13px', fontWeight: 500,
-                background: status === tab.key ? '#1a73e8' : 'white',
-                color: status === tab.key ? 'white' : '#555',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+              style={{ padding: '8px 18px', border: 'none', borderRadius: '20px',
+                cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                background: status === tab.key ? 'var(--primary)' : 'var(--bg-card)',
+                color: status === tab.key ? 'white' : 'var(--text-primary)',
+                boxShadow: 'var(--shadow)' }}>
               {tab.label}
             </button>
           ))}
         </div>
 
-        <div ref={printRef} style={{ background: 'white', borderRadius: '12px',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+        <div ref={printRef} style={{ background: 'var(--bg-card)', borderRadius: '8px',
+          boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '1px solid #eee' }}>
+              <tr style={{ background: 'var(--primary)', color: 'white' }}>
                 {['Waktu','Bulan/Tahun','Unit','Sub Kategori','Lokasi','Inspector','Frekuensi','Status','Aksi'].map(h => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left',
-                    color: '#666', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '14px 16px', textAlign: 'left',
+                    fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#aaa' }}>Loading...</td></tr>
+                <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#aaa' }}>Tidak ada data</td></tr>
+                <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-secondary)' }}>Tidak ada data</td></tr>
               ) : filtered.map((s, i) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid #f0f0f0',
-                  background: i % 2 === 0 ? 'white' : '#fafafa' }}>
-                  <td style={{ padding: '12px 16px', color: '#888', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                <tr key={s.id} style={{ borderBottom: '1px solid var(--border-light)',
+                  background: i % 2 === 0 ? 'white' : 'var(--bg-main)' }}>
+                  <td style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontSize: '12px', whiteSpace: 'nowrap' }}>
                     {new Date(s.submitted_at).toLocaleString('id-ID')}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '12px', whiteSpace: 'nowrap' }}>
                     {s.month} {s.year}
                   </td>
-                  <td style={{ padding: '12px 16px', fontWeight: 500 }}>
-                    <a href={`/history/${s.id}`} style={{ color: '#1a73e8', textDecoration: 'none' }}>{s.asset_id}</a>
+                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>
+                    <a href={`/history/${s.id}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>{s.asset_id}</a>
                   </td>
                   <td style={{ padding: '12px 16px' }}>{s.sub_category}</td>
                   <td style={{ padding: '12px 16px' }}>{s.location || '—'}</td>
                   <td style={{ padding: '12px 16px' }}>{s.inspector}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#666' }}>
+                  <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {s.notes ? s.notes.replace('Frekuensi: ','') : '—'}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
-                      background: s.status==='ok'?'#f0fdf4':s.status==='approved'?'#eff6ff':s.status==='corrected'?'#fffbeb':'#fff1f2',
-                      color: s.status==='ok'?'#22c55e':s.status==='approved'?'#3b82f6':s.status==='corrected'?'#f59e0b':'#ef4444',
-                      padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500
+                      background: s.status==='ok'?'#eafaf1':s.status==='approved'?'#e8f4f8':s.status==='corrected'?'#fff8e6':'#fdecea',
+                      color: s.status==='ok'?'var(--success)':s.status==='approved'?'var(--accent)':s.status==='corrected'?'var(--warning)':'var(--danger)',
+                      padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600
                     }}>
                       {s.status==='ok'?'✓ OK':s.status==='approved'?'✓ Approved':s.status==='corrected'?'⚡ Corrected':'✗ NOK'}
                     </span>
@@ -325,24 +321,24 @@ export default function HistoryPage() {
                   <td style={{ padding: '12px 16px' }}>
                     {s.status === 'ok' && (
                       <button onClick={() => handleApprove(s.id)}
-                        style={{ padding: '5px 12px', background: '#3b82f6', color: 'white',
-                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                        style={{ padding: '6px 14px', background: 'var(--accent)', color: 'white',
+                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
                         Approve
                       </button>
                     )}
                     {s.status === 'approved' && (
-                      <span style={{ color: '#22c55e', fontSize: '12px' }}>✓ Done</span>
+                      <span style={{ color: 'var(--success)', fontSize: '12px', fontWeight: 600 }}>✓ Done</span>
                     )}
                     {s.status === 'nok' && (
                       <button onClick={() => { setCorrectiveId(s.id); setCorrectiveText('') }}
-                        style={{ padding: '5px 12px', background: '#f59e0b', color: 'white',
-                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                        style={{ padding: '6px 14px', background: 'var(--warning)', color: 'white',
+                          border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
                         Corrective Action
                       </button>
                     )}
                     {s.status === 'corrected' && (
                       <a href={`/history/${s.id}`}
-                        style={{ color: '#f59e0b', fontSize: '12px', textDecoration: 'none' }}>
+                        style={{ color: 'var(--warning)', fontSize: '12px', textDecoration: 'none', fontWeight: 600 }}>
                         ⚡ Lihat Detail
                       </a>
                     )}
@@ -351,22 +347,23 @@ export default function HistoryPage() {
               ))}
             </tbody>
           </table>
-          <div style={{ padding: '12px 16px', color: '#888', fontSize: '12px',
-            borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '12px',
+            borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between' }}>
             <span>Total: {filtered.length} submission</span>
             {(category || month || year) && (
-              <span style={{ color: '#1a73e8' }}>
+              <span style={{ color: 'var(--primary)', fontWeight: 600 }}>
                 {category} {subCategory} {month} {year}
               </span>
             )}
           </div>
         </div>
       </div>
+
       {correctiveId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: 'white', padding: 24, borderRadius: 8, width: 440, maxWidth: '90%' }}>
-            <h3 style={{ color: '#0a3047', marginBottom: 8 }}>Corrective Action</h3>
-            <p style={{ fontSize: 13, color: '#7f8c8d', marginBottom: 16 }}>
+          <div style={{ background: 'var(--bg-card)', padding: 24, borderRadius: 8, width: 440, maxWidth: '90%', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ color: 'var(--primary)', marginBottom: 8, fontSize: '18px', fontWeight: 700 }}>Corrective Action</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
               Deskripsikan tindakan perbaikan yang sudah dilakukan
             </p>
             <textarea
@@ -374,19 +371,19 @@ export default function HistoryPage() {
               onChange={e => setCorrectiveText(e.target.value)}
               placeholder="Contoh: Freon diisi ulang, pressure indicator kembali hijau..."
               rows={4}
-              style={{ width: '100%', padding: 10, border: '1px solid #ddd', borderRadius: 6, fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
+              style={{ width: '100%', padding: 10, border: '1px solid var(--border)', borderRadius: 6, fontSize: 14, resize: 'vertical', boxSizing: 'border-box' as const }}
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <button
                 onClick={() => { setCorrectiveId(null); setCorrectiveText('') }}
-                style={{ flex: 1, padding: 10, background: '#7f8c8d', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                style={{ flex: 1, padding: 10, background: 'var(--text-secondary)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}
               >
                 Batal
               </button>
               <button
                 onClick={() => handleCorrective(correctiveId)}
                 disabled={savingCorrective || !correctiveText.trim()}
-                style={{ flex: 1, padding: 10, background: correctiveText.trim() ? '#f59e0b' : '#e0e0e0', color: correctiveText.trim() ? 'white' : '#7f8c8d', border: 'none', borderRadius: 6, cursor: correctiveText.trim() ? 'pointer' : 'not-allowed' }}
+                style={{ flex: 1, padding: 10, background: correctiveText.trim() ? 'var(--warning)' : '#e0e0e0', color: correctiveText.trim() ? 'white' : 'var(--text-secondary)', border: 'none', borderRadius: 6, cursor: correctiveText.trim() ? 'pointer' : 'not-allowed', fontWeight: 600 }}
               >
                 {savingCorrective ? 'Menyimpan...' : 'Simpan & Selesai'}
               </button>
