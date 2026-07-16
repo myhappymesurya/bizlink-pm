@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
+import { logActivity } from '@/lib/activityLog'
 
 const CHECKLIST_ITEMS: Record<string, string[]> = {
   'Fire Extinguisher': [
@@ -463,8 +464,13 @@ const items = category === 'Fire Extinguisher' && assetType === 'CO2'
       await supabase.from('checklist_items').insert(
         items.map(label => ({ submission_id: sub.id, label, result: checks[label] ? 'OK' : 'NOK' }))
       )
+      await logActivity(supabase, {
+        action: 'create',
+        entity_type: 'checklist_submission',
+        entity_id: sub.id,
+        new_value: { asset_id: selectedAsset, sub_category: category, status: sub.status, inspector },
+      })
     }
-
     setSaving(false)
     setCatatan('')
     setSaved(true)

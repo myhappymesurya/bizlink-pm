@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { INSPECTOR_OPTIONS } from '@/lib/constants'
 import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
+import { logActivity } from '@/lib/activityLog'
 
 type MeterField = { key: string; label: string; auto?: boolean }
 
@@ -155,9 +156,13 @@ export default function MeterRecordPage() {
         user_id: userId,
         submitted_at: new Date().toISOString()
       })
-
       if (insertError) throw insertError
-
+      await logActivity(supabase, {
+        action: 'create',
+        entity_type: 'meter_record',
+        entity_id: `${selectedId}__${tanggal}`,
+        new_value: { meter_id: selectedId, tanggal, reading_1: readings['reading_1'], inspector },
+      })
       setSuccess(true)
       setReadings({})
       setNotes('')

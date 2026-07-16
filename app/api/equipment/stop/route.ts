@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { logActivity } from '@/lib/activityLog'
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,7 +81,13 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-
+    await logActivity(supabase, {
+      action: 'update',
+      entity_type: 'equipment_status',
+      entity_id: `${equipment_type}__${equipment_name}`,
+      old_value: { status: 'on', started_at: current.started_at },
+      new_value: { status: 'off', duration_minutes: durationMinutes },
+    })
     return NextResponse.json({
       success: true,
       duration_hours: durationHours.toFixed(2),

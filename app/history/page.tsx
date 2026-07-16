@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
+import { logActivity } from '@/lib/activityLog'
 import { updatePmSchedule } from '@/lib/pmSchedule'
 
 type Submission = {
@@ -112,12 +113,18 @@ export default function HistoryPage() {
       approved_at: new Date().toISOString(),
       approved_by: user?.id,
     }).eq('id', id)
-
     if (!error && sub) {
       await updatePmSchedule(supabase, {
         asset_id: sub.asset_id,
         sub_category: sub.sub_category,
         frequency: sub.frequency,
+      })
+      await logActivity(supabase, {
+        action: 'update',
+        entity_type: 'checklist_submission',
+        entity_id: id,
+        old_value: { status: sub.status },
+        new_value: { status: 'approved' },
       })
     }
     loadHistory()
@@ -141,15 +148,20 @@ export default function HistoryPage() {
       approved_at: new Date().toISOString(),
       approved_by: session?.user.id,
     }).eq('id', id)
-
     if (!error && sub) {
       await updatePmSchedule(supabase, {
         asset_id: sub.asset_id,
         sub_category: sub.sub_category,
         frequency: sub.frequency,
       })
+      await logActivity(supabase, {
+        action: 'update',
+        entity_type: 'checklist_submission',
+        entity_id: id,
+        old_value: { status: sub.status },
+        new_value: { status: 'corrected', corrective_note: correctiveText },
+      })
     }
-
     setCorrectiveId(null)
     setCorrectiveText('')
     setSavingCorrective(false)

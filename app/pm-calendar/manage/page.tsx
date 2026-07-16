@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
+import { logActivity } from '@/lib/activityLog'
 
 type Task = {
   id: string
@@ -85,7 +86,7 @@ export default function PMCalendarManagePage() {
     if (!title.trim()) return
     setSaving(true)
     const { data: session } = await supabase.auth.getSession()
-    await supabase.from('pm_tasks').insert({
+    const { data: task } = await supabase.from('pm_tasks').insert({
       title,
       description: description || null,
       frequency,
@@ -93,7 +94,15 @@ export default function PMCalendarManagePage() {
       start_date: startDate,
       end_date: endDate || null,
       created_by: session.session?.user.id
-    })
+    }).select().single()
+    if (task) {
+      await logActivity(supabase, {
+        action: 'create',
+        entity_type: 'pm_task',
+        entity_id: task.id,
+        new_value: { title, frequency, start_date: startDate },
+      })
+    }
     setSaving(false)
     setShowForm(false)
     setTitle('')
@@ -104,15 +113,27 @@ export default function PMCalendarManagePage() {
     setEndDate('')
     fetchTasks()
   }
-
   async function handleToggleActive(id: string, current: boolean) {
     await supabase.from('pm_tasks').update({ is_active: !current }).eq('id', id)
+    await logActivity(supabase, {
+      action: 'update',
+      entity_type: 'pm_task',
+      entity_id: id,
+      old_value: { is_active: current },
+      new_value: { is_active: !current },
+    })
     fetchTasks()
   }
-
   async function handleDelete(id: string) {
     if (!confirm('Hapus tugas ini? Semua instance terkait juga akan dihapus.')) return
+    const before = tasks.find(t => t.id === id)
     await supabase.from('pm_tasks').delete().eq('id', id)
+    await logActivity(supabase, {
+      action: 'delete',
+      entity_type: 'pm_task',
+      entity_id: id,
+      old_value: { title: before?.title, frequency: before?.frequency },
+    })
     fetchTasks()
   }
 

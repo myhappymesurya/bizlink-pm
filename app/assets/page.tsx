@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
+import { logActivity } from '@/lib/activityLog'
 
 const supabase = createClient()
 
@@ -88,6 +89,7 @@ export default function AssetsPage() {
   async function handleSave(id: string) {
     setSaving(true)
     try {
+      const before = assets.find(a => a.id === id)
       // Auto-set status berdasarkan expired_date
       let finalStatus = editStatus
       if (editDate) {
@@ -100,12 +102,18 @@ export default function AssetsPage() {
           finalStatus = 'active'
         }
       }
-
       const { error } = await supabase.from('assets').update({ 
         status: finalStatus, 
         expired_date: editDate || null 
       }).eq('id', id)
       if (error) { alert('Error: ' + error.message); return }
+      await logActivity(supabase, {
+        action: 'update',
+        entity_type: 'asset',
+        entity_id: id,
+        old_value: { status: before?.status, expired_date: before?.expired_date },
+        new_value: { status: finalStatus, expired_date: editDate || null },
+      })
       await loadAssets()
       setEditId(null)
     } catch (e) {
