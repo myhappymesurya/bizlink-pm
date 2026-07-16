@@ -15,14 +15,17 @@ export default function Navbar() {
       const { data: sessionData } = await supabase.auth.getSession()
       const userId = sessionData.session?.user.id
       if (!userId) return
-
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, role')
+        .select('full_name, role, is_active')
         .eq('id', userId)
         .single()
-
       if (profile) {
+        if (profile.is_active === false) {
+          await supabase.auth.signOut()
+          router.push('/login')
+          return
+        }
         setUserInfo(profile)
       }
     }
