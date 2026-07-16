@@ -119,9 +119,14 @@ export default function Navbar() {
           </Link>
 
           {userInfo?.role === 'admin' && (
-            <Link href="/admin/users" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
-              Users
-            </Link>
+            <>
+              <Link href="/admin/users" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+                Users
+              </Link>
+              <Link href="/admin/activity-log" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+                Activity Log
+              </Link>
+            </>
           )}
 
           {userInfo && (
