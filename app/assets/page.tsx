@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import { logActivity } from '@/lib/activityLog'
@@ -19,6 +19,7 @@ type Asset = {
 }
 
 export default function AssetsPage() {
+  const printRef = useRef<HTMLDivElement>(null)
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -30,6 +31,7 @@ export default function AssetsPage() {
   const [filterCategory, setFilterCategory] = useState('')
   const [filterSubCategory, setFilterSubCategory] = useState('')
   const [filterType, setFilterType] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
   const [categories, setCategories] = useState<string[]>([])
   const [subCategories, setSubCategories] = useState<string[]>([])
 
@@ -83,8 +85,20 @@ export default function AssetsPage() {
     const matchCategory = !filterCategory || a.category === filterCategory
     const matchSubCategory = !filterSubCategory || a.sub_category === filterSubCategory
     const matchType = !filterType || a.type === filterType
-    return matchSearch && matchCategory && matchSubCategory && matchType
+    const matchStatus = !filterStatus || (a.status || 'active') === filterStatus
+    return matchSearch && matchCategory && matchSubCategory && matchType && matchStatus
   })
+
+  async function handleExportPDF() {
+    if (!printRef.current) return
+    const { default: html2pdf } = await import('html2pdf.js')
+    html2pdf().set({
+      margin: 10,
+      filename: `assets-${new Date().toISOString().split('T')[0]}.pdf`,
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    }).from(printRef.current).save()
+  }
 
   async function handleSave(id: string) {
     setSaving(true)
@@ -144,9 +158,17 @@ export default function AssetsPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
       <Navbar />
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 24px' }}>
-        <div style={{ marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: 700, color: 'var(--primary)', marginBottom: '8px' }}>Asset Management</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Manage and track all company assets, their status, and maintenance schedules</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: '32px', fontWeight: 700, color: 'var(--primary)', marginBottom: '8px' }}>Asset Management</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Manage and track all company assets, their status, and maintenance schedules</p>
+          </div>
+          <button
+            onClick={handleExportPDF}
+            style={{ padding: '10px 20px', background: 'var(--secondary)', color: 'var(--primary)', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}
+          >
+            📄 Export PDF
+          </button>
         </div>
 
         {error && (
@@ -193,8 +215,20 @@ export default function AssetsPage() {
                 {availableTypes.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             )}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{ minWidth: '150px', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '14px', background: 'white' }}
+            >
+              <option value="">All Status</option>
+              <option value="active">🟢 Active</option>
+              <option value="inactive">⚫ Inactive</option>
+              <option value="standby">🟡 Standby</option>
+              <option value="maintenance">🟠 Maintenance</option>
+              <option value="expired">🔴 Expired</option>
+            </select>
             <button
-              onClick={() => { setSearch(''); setFilterCategory(''); setFilterSubCategory(''); setFilterType(''); }}
+              onClick={() => { setSearch(''); setFilterCategory(''); setFilterSubCategory(''); setFilterType(''); setFilterStatus(''); }}
               style={{ padding: '10px 16px', background: 'var(--text-secondary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}
             >
               Clear
@@ -211,7 +245,7 @@ export default function AssetsPage() {
             Loading assets...
           </div>
         ) : (
-          <div style={{ background: 'var(--bg-card)', borderRadius: '8px', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+          <div ref={printRef} style={{ background: 'var(--bg-card)', borderRadius: '8px', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ background: 'var(--primary)', color: 'white' }}>
