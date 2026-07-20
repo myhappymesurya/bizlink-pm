@@ -117,6 +117,9 @@ export default function Navbar() {
           <Link href="/running-hours" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             Running Hours
           </Link>
+          <Link href="/work-orders" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+            Work Orders
+          </Link>
           <Link href="/reports" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             Reports
           </Link>
