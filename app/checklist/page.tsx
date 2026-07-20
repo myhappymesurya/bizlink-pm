@@ -362,7 +362,7 @@ const CATEGORIES = [
   'Pompa Pemadam Kebakaran',
 ]
 
-type Asset = { 
+type Asset = {
   id: string
   location: string
   type?: string
@@ -370,6 +370,15 @@ type Asset = {
   serial_number?: string
   expired_date?: string
 }
+
+type Sparepart = {
+  id: string
+  name: string
+  unit: string
+  linked_sub_category: string | null
+}
+
+type PartUsage = { sparepart_id: string; quantity: string }
 
 export default function ChecklistPage() {
   const supabase = createClient()
@@ -382,6 +391,10 @@ export default function ChecklistPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [catatan, setCatatan] = useState('')
+
+  const [spareparts, setSpareparts] = useState<Sparepart[]>([])
+  const [noPartUsed, setNoPartUsed] = useState(false)
+  const [partUsages, setPartUsages] = useState<PartUsage[]>([{ sparepart_id: '', quantity: '' }])
 
   const isFreqBased = category in FREQ_OPTIONS
 
@@ -398,9 +411,21 @@ export default function ChecklistPage() {
     })
   }, [])
 
+  useEffect(() => { loadSpareparts() }, [category])
+
+  async function loadSpareparts() {
+    const { data } = await supabase
+      .from('spareparts')
+      .select('id, name, unit, linked_sub_category')
+      .eq('is_active', true)
+      .or(`linked_sub_category.is.null,linked_sub_category.eq.${category}`)
+      .order('name')
+    setSpareparts(data || [])
+  }
+
   async function loadAssets() {
     const { data } = await supabase.from('assets').select('id, location, type, brand, serial_number, expired_date')
-  .eq('sub_category', category).order('id')
+      .eq('sub_category', category).order('id')
     setAssets(data || [])
     setSelectedAsset('')
     setChecks({})
@@ -410,6 +435,16 @@ export default function ChecklistPage() {
     setChecks(prev => ({ ...prev, [item]: !prev[item] }))
   }
 
+  function addPartRow() {
+    setPartUsages(prev => [...prev, { sparepart_id: '', quantity: '' }])
+  }
+  function removePartRow(index: number) {
+    setPartUsages(prev => prev.filter((_, i) => i !== index))
+  }
+  function updatePartRow(index: number, field: 'sparepart_id' | 'quantity', value: string) {
+    setPartUsages(prev => prev.map((row, i) => i === index ? { ...row, [field]: value } : row))
+  }
+
   const selectedAssetData = assets.find(a => a.id === selectedAsset)
   const assetType = selectedAssetData?.type || ''
 
@@ -417,10 +452,10 @@ export default function ChecklistPage() {
     ? (FREQ_CHECKLIST_ITEMS[category]?.[frequency] || [])
     : (CHECKLIST_ITEMS[category] || [])
 
-  const isOutdoorHydrant = category === 'Fire Hydrant' && 
+  const isOutdoorHydrant = category === 'Fire Hydrant' &&
     (selectedAssetData?.location?.toLowerCase().startsWith('outdoor') ?? false)
 
-const items = category === 'Fire Extinguisher' && assetType === 'CO2'
+  const items = category === 'Fire Extinguisher' && assetType === 'CO2'
     ? baseItems.filter(item => item !== 'Pressure indicator berwarna hijau')
     : isOutdoorHydrant
     ? baseItems.filter(item => !['Lampu alarm berfungsi dengan baik', 'Bel berfungsi dengan baik'].includes(item))
@@ -429,9 +464,14 @@ const items = category === 'Fire Extinguisher' && assetType === 'CO2'
   const allChecked = items.length > 0 && items.every(item => checks[item])
   const checkedCount = items.filter(item => checks[item]).length
 
+  const validPartRows = partUsages.filter(r => r.sparepart_id && parseFloat(r.quantity) > 0)
+  const sparepartsValid = noPartUsed || validPartRows.length > 0
+
   async function handleSubmit() {
     if (!selectedAsset) return alert('Pilih unit terlebih dahulu')
     if (isFreqBased && !frequency) return alert('Pilih frekuensi terlebih dahulu')
+    if (!sparepartsValid) return alert('Pilih sparepart yang dipakai, atau centang "Tidak ada sparepart dipakai"')
+
     setSaving(true)
     const now = new Date()
     const month = now.toLocaleString('en', { month: 'long' })
@@ -464,6 +504,34 @@ const items = category === 'Fire Extinguisher' && assetType === 'CO2'
       await supabase.from('checklist_items').insert(
         items.map(label => ({ submission_id: sub.id, label, result: checks[label] ? 'OK' : 'NOK' }))
       )
+
+      if (!noPartUsed && validPartRows.length > 0) {
+        const userId = (await supabase.auth.getUser()).data.user?.id
+        await supabase.from('sparepart_usage').insert(
+          validPartRows.map(r => ({
+            sparepart_id: r.sparepart_id,
+            source_type: 'checklist',
+            source_id: sub.id,
+            quantity: parseFloat(r.quantity),
+            user_id: userId,
+          }))
+        )
+        for (const row of validPartRows) {
+          const { data: current } = await supabase.from('spareparts').select('current_stock').eq('id', row.sparepart_id).single()
+          if (current) {
+            const newStock = current.current_stock - parseFloat(row.quantity)
+            await supabase.from('spareparts').update({ current_stock: newStock }).eq('id', row.sparepart_id)
+            await supabase.from('sparepart_transactions').insert({
+              sparepart_id: row.sparepart_id,
+              type: 'out',
+              quantity: parseFloat(row.quantity),
+              notes: `Dipakai di checklist ${selectedAsset}`,
+              user_id: userId,
+            })
+          }
+        }
+      }
+
       await logActivity(supabase, {
         action: 'create',
         entity_type: 'checklist_submission',
@@ -473,84 +541,91 @@ const items = category === 'Fire Extinguisher' && assetType === 'CO2'
     }
     setSaving(false)
     setCatatan('')
+    setNoPartUsed(false)
+    setPartUsages([{ sparepart_id: '', quantity: '' }])
     setSaved(true)
     setTimeout(() => { setSaved(false); setChecks({}); setSelectedAsset('') }, 2500)
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      <Navbar />
-      <div style={{ padding: '32px', maxWidth: '700px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '20px' }}>Form Checklist PM</h1>
+  const card: React.CSSProperties = {
+    background: 'var(--bg-card)', padding: '24px', borderRadius: '8px',
+    boxShadow: 'var(--shadow)', marginBottom: '16px'
+  }
+  const fieldLabel: React.CSSProperties = {
+    fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px'
+  }
+  const fieldInput: React.CSSProperties = {
+    width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)',
+    fontSize: '14px', boxSizing: 'border-box'
+  }
 
-        <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-main)' }}>
+      <Navbar />
+      <div style={{ padding: '32px 24px', maxWidth: '700px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--primary)', marginBottom: '24px' }}>Form Checklist PM</h1>
+
+        <div style={card}>
           <div style={{ marginBottom: '16px' }}>
             {selectedAsset && (() => {
-            const asset = assets.find(a => a.id === selectedAsset)
-            const hasInfo = asset && (asset.brand || asset.type || asset.serial_number || asset.expired_date)
-            if (!hasInfo) return null
-            return (
-              <div style={{ 
-                background: '#f8f9fa', 
-                borderRadius: '8px', 
-                padding: '16px', 
-                marginBottom: '16px',
-                border: '1px solid #e9ecef'
-              }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#0a3047', marginBottom: '12px' }}>
-                  General Information
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  {asset.brand && (
-                    <div>
-                      <p style={{ fontSize: '11px', color: '#7f8c8d', margin: 0 }}>Brand</p>
-                      <p style={{ fontSize: '13px', fontWeight: 500, margin: 0 }}>{asset.brand}</p>
-                    </div>
-                  )}
-                  {asset.type && (
-                    <div>
-                      <p style={{ fontSize: '11px', color: '#7f8c8d', margin: 0 }}>Type</p>
-                      <p style={{ fontSize: '13px', fontWeight: 500, margin: 0 }}>{asset.type}</p>
-                    </div>
-                  )}
-                  {asset.serial_number && (
-                    <div>
-                      <p style={{ fontSize: '11px', color: '#7f8c8d', margin: 0 }}>Serial Number</p>
-                      <p style={{ fontSize: '13px', fontWeight: 500, margin: 0 }}>{asset.serial_number}</p>
-                    </div>
-                  )}
-                  {asset.expired_date && (
-                    <div>
-                      <p style={{ fontSize: '11px', color: '#7f8c8d', margin: 0 }}>Expired Date</p>
-                      <p style={{ fontSize: '13px', fontWeight: 500, margin: 0 }}>{asset.expired_date}</p>
-                    </div>
-                  )}
+              const asset = assets.find(a => a.id === selectedAsset)
+              const hasInfo = asset && (asset.brand || asset.type || asset.serial_number || asset.expired_date)
+              if (!hasInfo) return null
+              return (
+                <div style={{
+                  background: 'var(--bg-main)', borderRadius: '8px', padding: '16px',
+                  marginBottom: '16px', border: '1px solid var(--border-light)'
+                }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '12px' }}>
+                    General Information
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {asset.brand && (
+                      <div>
+                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>Brand</p>
+                        <p style={{ fontSize: '13px', fontWeight: 500, margin: 0, color: 'var(--text-primary)' }}>{asset.brand}</p>
+                      </div>
+                    )}
+                    {asset.type && (
+                      <div>
+                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>Type</p>
+                        <p style={{ fontSize: '13px', fontWeight: 500, margin: 0, color: 'var(--text-primary)' }}>{asset.type}</p>
+                      </div>
+                    )}
+                    {asset.serial_number && (
+                      <div>
+                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>Serial Number</p>
+                        <p style={{ fontSize: '13px', fontWeight: 500, margin: 0, color: 'var(--text-primary)' }}>{asset.serial_number}</p>
+                      </div>
+                    )}
+                    {asset.expired_date && (
+                      <div>
+                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>Expired Date</p>
+                        <p style={{ fontSize: '13px', fontWeight: 500, margin: 0, color: 'var(--text-primary)' }}>{asset.expired_date}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })()}
-            <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Kategori</label>
-            <select value={category} onChange={e => setCategory(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
+              )
+            })()}
+            <label style={fieldLabel}>Kategori</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} style={fieldInput}>
               {CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
 
           {isFreqBased && (
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Frekuensi</label>
-              <select value={frequency} onChange={e => setFrequency(e.target.value)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
+              <label style={fieldLabel}>Frekuensi</label>
+              <select value={frequency} onChange={e => setFrequency(e.target.value)} style={fieldInput}>
                 {FREQ_OPTIONS[category].map(f => <option key={f}>{f}</option>)}
               </select>
             </div>
           )}
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Pilih Unit</label>
-            <select value={selectedAsset} onChange={e => setSelectedAsset(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}>
+            <label style={fieldLabel}>Pilih Unit</label>
+            <select value={selectedAsset} onChange={e => setSelectedAsset(e.target.value)} style={fieldInput}>
               <option value="">-- Pilih unit --</option>
               {assets.map(a => (
                 <option key={a.id} value={a.id}>{a.id} — {a.location}</option>
@@ -559,73 +634,136 @@ const items = category === 'Fire Extinguisher' && assetType === 'CO2'
           </div>
 
           <div>
-            <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>Inspector</label>
-            <input value={inspector} onChange={e => setInspector(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd',
-                fontSize: '14px', boxSizing: 'border-box' }} />
+            <label style={fieldLabel}>Inspector</label>
+            <input value={inspector} onChange={e => setInspector(e.target.value)} style={fieldInput} />
           </div>
         </div>
 
-        <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
+        <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 500 }}>Item Checklist ({items.length} poin)</span>
-            <span style={{ fontSize: '13px', color: allChecked ? '#22c55e' : '#f59e0b' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--primary)' }}>Item Checklist ({items.length} poin)</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: allChecked ? 'var(--success)' : 'var(--warning)' }}>
               {checkedCount}/{items.length} OK
             </span>
           </div>
           {items.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#aaa', padding: '20px', fontSize: '13px' }}>
+            <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px', fontSize: '13px' }}>
               Pilih kategori untuk melihat item checklist
             </div>
           ) : items.map(item => (
             <div key={item} onClick={() => toggleCheck(item)}
               style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
                 borderRadius: '8px', marginBottom: '8px', cursor: 'pointer',
-                background: checks[item] ? '#f0fdf4' : '#fafafa',
-                border: checks[item] ? '1px solid #bbf7d0' : '1px solid #f0f0f0' }}>
+                background: checks[item] ? '#eafaf1' : 'var(--bg-main)',
+                border: checks[item] ? '1px solid var(--success)' : '1px solid var(--border-light)' }}>
               <div style={{ width: '20px', height: '20px', borderRadius: '4px', flexShrink: 0,
-                background: checks[item] ? '#22c55e' : 'white',
-                border: checks[item] ? 'none' : '2px solid #ddd',
+                background: checks[item] ? 'var(--success)' : 'white',
+                border: checks[item] ? 'none' : '2px solid var(--border)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: 'white', fontSize: '13px' }}>
                 {checks[item] ? '✓' : ''}
               </div>
-              <span style={{ fontSize: '13px' }}>{item}</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{item}</span>
             </div>
           ))}
         </div>
 
+        <div style={card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--primary)' }}>🔧 Sparepart Dipakai</span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={noPartUsed}
+                onChange={e => setNoPartUsed(e.target.checked)}
+              />
+              Tidak ada sparepart dipakai
+            </label>
+          </div>
+
+          {!noPartUsed && (
+            <>
+              {spareparts.length === 0 ? (
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                  Belum ada sparepart terdaftar untuk kategori ini. Daftarkan dulu di halaman Spareparts.
+                </p>
+              ) : (
+                <>
+                  {partUsages.map((row, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                      <select
+                        value={row.sparepart_id}
+                        onChange={e => updatePartRow(i, 'sparepart_id', e.target.value)}
+                        style={{ ...fieldInput, flex: 2 }}
+                      >
+                        <option value="">-- Pilih part --</option>
+                        {spareparts.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}{p.linked_sub_category ? '' : ' (generic)'}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="Qty"
+                        value={row.quantity}
+                        onChange={e => updatePartRow(i, 'quantity', e.target.value)}
+                        style={{ ...fieldInput, flex: 1, minWidth: 70 }}
+                        min="0"
+                        step="any"
+                      />
+                      {partUsages.length > 1 && (
+                        <button
+                          onClick={() => removePartRow(i)}
+                          type="button"
+                          style={{ padding: '8px 10px', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    onClick={addPartRow}
+                    type="button"
+                    style={{ padding: '6px 12px', background: 'var(--bg-main)', color: 'var(--primary)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, marginTop: 4 }}
+                  >
+                    + Tambah Part Lain
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
         <div style={{ marginTop: 16 }}>
-  <label style={{ fontSize: '13px', color: '#666', display: 'block', marginBottom: '6px' }}>
-    Catatan (opsional — mengisi catatan akan otomatis set status NOK)
-  </label>
-  <textarea
-    value={catatan}
-    onChange={(e) => setCatatan(e.target.value)}
-    placeholder="Tulis catatan hasil pemeriksaan jika ada..."
-    rows={3}
-    style={{
-      width: '100%',
-      padding: '10px',
-      borderRadius: '8px',
-      border: catatan ? '1px solid #ef4444' : '1px solid #ddd',
-      fontSize: '14px',
-      resize: 'vertical',
-      boxSizing: 'border-box'
-    }}
-  />
-  {catatan && (
-    <p style={{ fontSize: '12px', color: '#ef4444', marginTop: 4 }}>
-      ⚠️ Status akan otomatis NOK karena ada catatan
-    </p>
-  )}
-</div>
-        <button onClick={handleSubmit} disabled={saving || saved}
-          style={{ width: '100%', padding: '14px', borderRadius: '10px', border: 'none',
-            background: saved ? '#22c55e' : '#1a73e8', color: 'white',
-            fontSize: '15px', fontWeight: 500, cursor: 'pointer' }}>
-          {saved ? '✓ Tersimpan!' : saving ? 'Menyimpan...' : 'Simpan Checklist'}
+          <label style={fieldLabel}>
+            Catatan (opsional — mengisi catatan akan otomatis set status NOK)
+          </label>
+          <textarea
+            value={catatan}
+            onChange={(e) => setCatatan(e.target.value)}
+            placeholder="Tulis catatan hasil pemeriksaan jika ada..."
+            rows={3}
+            style={{
+              ...fieldInput,
+              border: catatan ? '1px solid var(--danger)' : '1px solid var(--border)',
+              resize: 'vertical'
+            }}
+          />
+          {catatan && (
+            <p style={{ fontSize: '12px', color: 'var(--danger)', marginTop: 4, marginBottom: 0 }}>
+              ⚠️ Status akan otomatis NOK karena ada catatan
+            </p>
+          )}
+        </div>
+
+        <button onClick={handleSubmit} disabled={saving || saved || !sparepartsValid}
+          style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', marginTop: 16,
+            background: saved ? 'var(--success)' : sparepartsValid ? 'var(--primary)' : '#e0e0e0',
+            color: 'white', fontSize: '15px', fontWeight: 600,
+            cursor: sparepartsValid ? 'pointer' : 'not-allowed' }}>
+          {saved ? '✓ Tersimpan!' : saving ? 'Menyimpan...' : !sparepartsValid ? 'Isi sparepart terlebih dahulu' : 'Simpan Checklist'}
         </button>
       </div>
     </div>
