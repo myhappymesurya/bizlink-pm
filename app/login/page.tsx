@@ -17,7 +17,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: err } = await supabase.auth.signInWithPassword({
         email,
         password
       })
@@ -27,7 +27,18 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/dashboard')
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('must_change_password')
+        .eq('id', signInData.user.id)
+        .single()
+
+
+      if (profile?.must_change_password) {
+        router.push('/auth/change-password')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (e) {
       setError(String(e))
     } finally {

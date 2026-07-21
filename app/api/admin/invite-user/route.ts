@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
         id: newUser.user.id,
         full_name,
         role,
+        must_change_password: true,
       })
 
     if (profileError) {
@@ -88,25 +89,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Generate invite link (recovery type, redirect ke set-password)
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: {
-        redirectTo: 'https://bizlink-pm.vercel.app/auth/set-password',
-      },
-    })
-
-    if (linkError || !linkData) {
-      return NextResponse.json(
-        { error: 'User dibuat, tapi gagal generate link invite: ' + linkError?.message },
-        { status: 207 }
-      )
-    }
-
-    const inviteLink = linkData.properties?.action_link
-
-    // 5. Kirim email via Gmail SMTP
+    // 4. Kirim email berisi password sementara langsung (bukan link) via Gmail SMTP
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -124,11 +107,16 @@ export async function POST(request: NextRequest) {
           <h2 style="color: #0a3047;">Selamat datang di BizLink PM</h2>
           <p>Halo ${full_name},</p>
           <p>Anda diundang sebagai <strong>${role}</strong> di sistem BizLink PM.</p>
-          <p>Klik link di bawah ini untuk membuat password Anda:</p>
-          <a href="${inviteLink}" style="display: inline-block; background: #0a3047; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 16px 0;">
-            Buat Password
+          <p>Berikut kredensial login Anda:</p>
+          <div style="background: #f5f6f7; padding: 16px; border-radius: 6px; margin: 16px 0;">
+            <p style="margin: 0 0 8px;"><strong>Email:</strong> ${email}</p>
+            <p style="margin: 0;"><strong>Password sementara:</strong> <code style="background: white; padding: 2px 8px; border-radius: 4px;">${tempPassword}</code></p>
+          </div>
+          <p>Silakan login menggunakan kredensial di atas. Anda akan diminta membuat password baru saat login pertama kali.</p>
+          <a href="https://bizlink-pm.vercel.app/login" style="display: inline-block; background: #0a3047; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 16px 0;">
+            Login Sekarang
           </a>
-          <p style="color: #7f8c8d; font-size: 12px;">Link ini berlaku sementara. Kalau sudah expired, hubungi admin untuk dikirim ulang.</p>
+          <p style="color: #7f8c8d; font-size: 12px;">Jangan bagikan password ini ke siapapun. Kalau ada kendala, hubungi admin.</p>
         </div>
       `,
     })
