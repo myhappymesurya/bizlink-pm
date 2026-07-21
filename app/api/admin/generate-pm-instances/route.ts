@@ -8,24 +8,22 @@ const supabaseAdmin = createClient(
 
 function generateDates(task: any, fromDate: Date, toDate: Date): string[] {
   const dates: string[] = []
+  if (task.frequency === 'one-time') {
+    if (new Date(task.start_date) <= toDate) dates.push(task.start_date)
+    return dates
+  }
   const current = new Date(fromDate)
-
   while (current <= toDate) {
     const dateStr = current.toISOString().split('T')[0]
-
-    if (task.frequency === 'one-time') {
-      if (dateStr === task.start_date) dates.push(dateStr)
-    } else if (task.frequency === 'daily') {
+    if (task.frequency === 'daily') {
       dates.push(dateStr)
     } else if (task.frequency === 'weekly') {
       if (current.getDay() === task.frequency_day) dates.push(dateStr)
     } else if (task.frequency === 'monthly') {
       if (current.getDate() === task.frequency_day) dates.push(dateStr)
     }
-
     current.setDate(current.getDate() + 1)
   }
-
   return dates
 }
 
@@ -84,7 +82,9 @@ export async function POST(request: NextRequest) {
             task_id: task.id,
             scheduled_date: date,
             status: 'pending',
-            created_at: new Date().toISOString()
+            due_date: task.due_date ?? null,
+            created_at: new Date().toISOString(),
+            source: 'manual'
           }, {
             onConflict: 'task_id,scheduled_date',
             ignoreDuplicates: true

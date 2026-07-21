@@ -11,6 +11,7 @@ type Instance = {
   status: 'pending' | 'completed' | 'skipped'
   notes: string | null
   completed_at: string | null
+  due_date: string | null
   pm_tasks: {
     title: string
     description: string | null
@@ -25,8 +26,10 @@ export default function WorkOrdersPage() {
   const supabase = createClient()
   const [instances, setInstances] = useState<Instance[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<'pending' | 'completed'>('pending')
+  const [statusFilter, setStatusFilter] = useState<'pending' | 'completed' | 'overdue'>('pending')
   const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [userRole, setUserRole] = useState('')
   const [completingId, setCompletingId] = useState<string | null>(null)
   const [completingNotes, setCompletingNotes] = useState('')
@@ -59,7 +62,7 @@ export default function WorkOrdersPage() {
     setLoading(true)
     const { data } = await supabase
       .from('pm_task_instances')
-      .select('id, task_id, scheduled_date, status, notes, completed_at, pm_tasks(title, description, frequency)')
+      .select('id, task_id, scheduled_date, status, notes, completed_at, due_date, pm_tasks(title, description, frequency)')
       .order('scheduled_date', { ascending: false })
     setInstances((data as any) || [])
     setLoading(false)
@@ -137,15 +140,31 @@ export default function WorkOrdersPage() {
     fetchInstances()
   }
 
-  const filtered = instances
-    .filter(i => i.status === statusFilter)
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  function isOverdue(i: Instance) {
+    return i.status === 'pending' && !!i.due_date && i.due_date < todayStr
+  }
+
+  const inRange = instances.filter(i => {
+    if (dateFrom && i.scheduled_date < dateFrom) return false
+    if (dateTo && i.scheduled_date > dateTo) return false
+    return true
+  })
+
+  const filtered = inRange
+    .filter(i => {
+      if (statusFilter === 'overdue') return isOverdue(i)
+      return i.status === statusFilter
+    })
     .filter(i => !search ||
       i.pm_tasks?.title?.toLowerCase().includes(search.toLowerCase()) ||
       i.pm_tasks?.description?.toLowerCase().includes(search.toLowerCase())
     )
 
-  const openCount = instances.filter(i => i.status === 'pending').length
-  const closedCount = instances.filter(i => i.status === 'completed').length
+  const openCount = inRange.filter(i => i.status === 'pending').length
+  const closedCount = inRange.filter(i => i.status === 'completed').length
+  const overdueCount = inRange.filter(isOverdue).length
 
   const card: React.CSSProperties = {
     background: 'var(--bg-card)', padding: '24px', borderRadius: '8px',
@@ -183,7 +202,7 @@ export default function WorkOrdersPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
           <div
             onClick={() => setStatusFilter('pending')}
             style={{
@@ -195,6 +214,16 @@ export default function WorkOrdersPage() {
             <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--warning)', margin: 0 }}>{openCount}</p>
           </div>
           <div
+            onClick={() => setStatusFilter('overdue')}
+            style={{
+              ...card, marginBottom: 0, padding: 16, textAlign: 'center', cursor: 'pointer',
+              border: statusFilter === 'overdue' ? '2px solid var(--danger)' : '2px solid transparent'
+            }}
+          >
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 6px' }}>Overdue</p>
+            <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--danger)', margin: 0 }}>{overdueCount}</p>
+          </div>
+          <div
             onClick={() => setStatusFilter('completed')}
             style={{
               ...card, marginBottom: 0, padding: 16, textAlign: 'center', cursor: 'pointer',
@@ -204,6 +233,23 @@ export default function WorkOrdersPage() {
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 6px' }}>Closed</p>
             <p style={{ fontSize: 28, fontWeight: 700, color: 'var(--success)', margin: 0 }}>{closedCount}</p>
           </div>
+        </div>
+
+        <div style={{ ...card, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Dari Tanggal</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={fieldInput} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>Sampai Tanggal</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={fieldInput} />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(''); setDateTo('') }}
+              style={{ padding: '10px 14px', background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)' }}>
+              Reset Filter
+            </button>
+          )}
         </div>
 
         <div style={card}>
@@ -240,10 +286,10 @@ export default function WorkOrdersPage() {
                   </div>
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 12,
-                    background: inst.status === 'completed' ? '#eafaf1' : '#fff8e6',
-                    color: inst.status === 'completed' ? 'var(--success)' : 'var(--warning)'
+                    background: inst.status === 'completed' ? '#eafaf1' : (isOverdue(inst) ? '#fdecea' : '#fff8e6'),
+                    color: inst.status === 'completed' ? 'var(--success)' : (isOverdue(inst) ? 'var(--danger)' : 'var(--warning)')
                   }}>
-                    {inst.status === 'completed' ? '✓ Closed' : '○ Open'}
+                    {inst.status === 'completed' ? '✓ Closed' : (isOverdue(inst) ? '⚠ Overdue' : '○ Open')}
                   </span>
                 </div>
 

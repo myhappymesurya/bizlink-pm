@@ -42,6 +42,7 @@ export default function PMCalendarManagePage() {
   const [frequencyDay, setFrequencyDay] = useState(1)
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
   const [endDate, setEndDate] = useState('')
+  const [dueDate, setDueDate] = useState('')
 
   useEffect(() => {
     checkAccess()
@@ -93,6 +94,7 @@ export default function PMCalendarManagePage() {
       frequency_day: frequency === 'weekly' || frequency === 'monthly' ? frequencyDay : null,
       start_date: startDate,
       end_date: endDate || null,
+      due_date: frequency === 'one-time' ? (dueDate || null) : null,
       created_by: session.session?.user.id
     }).select().single()
     if (task) {
@@ -111,6 +113,7 @@ export default function PMCalendarManagePage() {
     setFrequencyDay(1)
     setStartDate(new Date().toISOString().split('T')[0])
     setEndDate('')
+    setDueDate('')
     fetchTasks()
   }
   async function handleToggleActive(id: string, current: boolean) {
@@ -228,6 +231,12 @@ export default function PMCalendarManagePage() {
                   <div style={{ flex: '1 1 150px' }}>
                     <label style={fieldLabel}>Tanggal Selesai (opsional)</label>
                     <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={fieldInput} />
+                  </div>
+                )}
+                {frequency === 'one-time' && (
+                  <div style={{ flex: '1 1 150px' }}>
+                    <label style={fieldLabel}>Target Tanggal Selesai (opsional)</label>
+                    <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={fieldInput} />
                   </div>
                 )}
               </div>
