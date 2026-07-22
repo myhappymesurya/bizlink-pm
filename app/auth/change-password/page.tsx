@@ -39,8 +39,14 @@ export default function ChangePasswordPage() {
 
     const { data: session } = await supabase.auth.getSession()
     const userId = session.session?.user.id
+    const tempPassword = sessionStorage.getItem('temp_pwd_for_change')
 
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    const { error: updateError } = await supabase.auth.updateUser({
+      password,
+      ...(tempPassword ? { current_password: tempPassword } : {}),
+    } as any)
+    sessionStorage.removeItem('temp_pwd_for_change')
+
     if (updateError) {
       setError(updateError.message)
       setLoading(false)

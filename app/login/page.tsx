@@ -35,6 +35,7 @@ export default function LoginPage() {
 
 
       if (profile?.must_change_password) {
+        sessionStorage.setItem('temp_pwd_for_change', password)
         router.push('/auth/change-password')
       } else {
         router.push('/dashboard')
