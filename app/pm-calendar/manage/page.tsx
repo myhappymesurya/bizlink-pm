@@ -21,6 +21,8 @@ const FREQUENCY_LABELS: Record<string, string> = {
   'one-time': 'Sekali',
   'daily': 'Harian',
   'weekly': 'Mingguan',
+  'biweekly': '2 Minggu Sekali',
+  'triweekly': '3 Minggu Sekali',
   'monthly': 'Bulanan'
 }
 
@@ -91,7 +93,7 @@ export default function PMCalendarManagePage() {
       title,
       description: description || null,
       frequency,
-      frequency_day: frequency === 'weekly' || frequency === 'monthly' ? frequencyDay : null,
+      frequency_day: ['weekly', 'biweekly', 'triweekly', 'monthly'].includes(frequency) ? frequencyDay : null,
       start_date: startDate,
       end_date: endDate || null,
       due_date: frequency === 'one-time' ? (dueDate || null) : null,
@@ -204,10 +206,12 @@ export default function PMCalendarManagePage() {
                     <option value="one-time">Sekali</option>
                     <option value="daily">Harian</option>
                     <option value="weekly">Mingguan</option>
+                    <option value="biweekly">2 Minggu Sekali</option>
+                    <option value="triweekly">3 Minggu Sekali</option>
                     <option value="monthly">Bulanan</option>
                   </select>
                 </div>
-                {frequency === 'weekly' && (
+                {(frequency === 'weekly' || frequency === 'biweekly' || frequency === 'triweekly') && (
                   <div style={{ flex: '1 1 150px' }}>
                     <label style={fieldLabel}>Hari</label>
                     <select value={frequencyDay} onChange={e => setFrequencyDay(Number(e.target.value))} style={fieldInput}>
@@ -282,7 +286,7 @@ export default function PMCalendarManagePage() {
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>
                       {FREQUENCY_LABELS[task.frequency]}
-                      {task.frequency === 'weekly' && task.frequency_day !== null && ` — ${DAYS_OF_WEEK[task.frequency_day]}`}
+                      {['weekly', 'biweekly', 'triweekly'].includes(task.frequency) && task.frequency_day !== null && ` — ${DAYS_OF_WEEK[task.frequency_day]}`}
                       {task.frequency === 'monthly' && task.frequency_day !== null && ` — tgl ${task.frequency_day}`}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{task.start_date}</td>

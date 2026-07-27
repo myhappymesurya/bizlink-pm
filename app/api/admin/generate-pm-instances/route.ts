@@ -19,6 +19,13 @@ function generateDates(task: any, fromDate: Date, toDate: Date): string[] {
       dates.push(dateStr)
     } else if (task.frequency === 'weekly') {
       if (current.getDay() === task.frequency_day) dates.push(dateStr)
+    } else if (task.frequency === 'biweekly' || task.frequency === 'triweekly') {
+      if (current.getDay() === task.frequency_day) {
+        const interval = task.frequency === 'biweekly' ? 2 : 3
+        const daysSinceStart = Math.floor((current.getTime() - new Date(task.start_date).getTime()) / 86400000)
+        const weeksSinceStart = Math.floor(daysSinceStart / 7)
+        if (weeksSinceStart >= 0 && weeksSinceStart % interval === 0) dates.push(dateStr)
+      }
     } else if (task.frequency === 'monthly') {
       if (current.getDate() === task.frequency_day) dates.push(dateStr)
     }
