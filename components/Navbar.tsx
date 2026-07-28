@@ -123,6 +123,9 @@ export default function Navbar() {
           <Link href="/breakdown" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             Lapor Kerusakan
           </Link>
+          <Link href="/kpi-analytics" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+            KPI Analytics
+          </Link>
           <Link href="/spareparts" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
             Spareparts
           </Link>
