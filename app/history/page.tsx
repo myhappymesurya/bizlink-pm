@@ -225,7 +225,7 @@ export default function HistoryPage() {
     type: 'checklist',
     displayDate: s.submitted_at.split('T')[0],
     title: s.asset_id,
-    subtitle: s.sub_category,
+    subtitle: s.sub_category === 'Panel Listrik' ? `${s.sub_category} · ${s.frequency}` : s.sub_category,
     location: s.location || '—',
     status: s.status,
     original: s,
@@ -419,7 +419,7 @@ export default function HistoryPage() {
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 600 }}>
                       {r.type === 'checklist' ? (
-                        <a href={`/history/${r.key.replace('cs-', '')}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>{r.title}</a>
+                        <a href={`/history/${r.key.replace('cs-', '')}`} title="Lihat detail checklist" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>{r.title}</a>
                       ) : r.title}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>{r.subtitle}</td>
@@ -432,6 +432,11 @@ export default function HistoryPage() {
                       {r.type === 'adhoc' ? (
                         <a href="/pm-calendar" style={{ color: 'var(--accent)', fontSize: '12px', textDecoration: 'none', fontWeight: 600 }}>
                           📅 Lihat Kalender
+                        </a>
+                      ) : r.status === 'ok' && (r.original as Submission).sub_category === 'Panel Listrik' && (r.original as Submission).frequency === 'Quarterly' ? (
+                        <a href={`/history/${(r.original as Submission).id}`}
+                          style={{ color: 'var(--accent)', fontSize: '12px', textDecoration: 'underline', fontWeight: 600 }}>
+                          Periksa nilai →
                         </a>
                       ) : r.status === 'ok' ? (
                         <button onClick={() => handleApprove((r.original as Submission).id)}

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import { logActivity } from '@/lib/activityLog'
+import PanelQuarterlyForm from '@/components/PanelQuarterlyForm'
+import { PANEL_QUARTERLY, buildPanelRows, emptyPanelState, type PanelFormState } from '@/lib/checklist/panelListrikQuarterly'
 
 const CHECKLIST_ITEMS: Record<string, string[]> = {
   'Fire Extinguisher': [
@@ -294,6 +296,10 @@ const FREQ_CHECKLIST_ITEMS: Record<string, Record<string, string[]>> = {
       'Kalibrasi pressure gauge dan dew point meter',
     ],
   },
+    'Panel Listrik': {
+    'Monthly': CHECKLIST_ITEMS['Panel Listrik'],
+    'Quarterly': [],
+  },
   'Pompa Distribusi CT 2 Cell': PUMP_ITEMS,
   'Pompa Distribusi CT 1 Cell': PUMP_ITEMS,
   'Pompa Supply CT': PUMP_ITEMS,
@@ -347,6 +353,7 @@ const FREQ_OPTIONS: Record<string, string[]> = {
   'Pompa Supply CT': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
   'Pompa Booster': ['Daily', 'Monthly', 'Quarterly', 'Annually'],
   'Pompa Pemadam Kebakaran': ['Daily', 'Bi Weekly', 'Monthly', 'Bi Annually', 'Annually'],
+  'Panel Listrik': ['Monthly', 'Quarterly'],
 }
 
 const CATEGORIES = [
@@ -369,6 +376,7 @@ type Asset = {
   brand?: string
   serial_number?: string
   expired_date?: string
+  rated_current_a?: number | null
 }
 
 type Sparepart = {
@@ -391,12 +399,14 @@ export default function ChecklistPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [catatan, setCatatan] = useState('')
+  const [panel, setPanel] = useState<PanelFormState>(emptyPanelState())
 
   const [spareparts, setSpareparts] = useState<Sparepart[]>([])
   const [noPartUsed, setNoPartUsed] = useState(false)
   const [partUsages, setPartUsages] = useState<PartUsage[]>([{ sparepart_id: '', quantity: '' }])
 
   const isFreqBased = category in FREQ_OPTIONS
+  const isPanelQuarterly = category === 'Panel Listrik' && frequency === 'Quarterly'
 
   useEffect(() => {
     setFrequency(isFreqBased ? FREQ_OPTIONS[category][0] : '')
@@ -404,6 +414,11 @@ export default function ChecklistPage() {
   }, [category])
 
   useEffect(() => { setChecks({}) }, [frequency])
+
+  useEffect(() => {
+    const a = assets.find(x => x.id === selectedAsset)
+    setPanel(emptyPanelState(a?.rated_current_a ? String(a.rated_current_a) : ''))
+  }, [selectedAsset, frequency])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -424,7 +439,7 @@ export default function ChecklistPage() {
   }
 
   async function loadAssets() {
-    const { data } = await supabase.from('assets').select('id, location, type, brand, serial_number, expired_date')
+    const { data } = await supabase.from('assets').select('id, location, type, brand, serial_number, expired_date, rated_current_a')
       .eq('sub_category', category).order('id')
     setAssets(data || [])
     setSelectedAsset('')
@@ -463,12 +478,16 @@ export default function ChecklistPage() {
 
   const allChecked = items.length > 0 && items.every(item => checks[item])
   const checkedCount = items.filter(item => checks[item]).length
+  const panelRows = buildPanelRows(panel)
+  const panelDone = panelRows.every(r => r.result !== 'EMPTY')
+  const panelAllOk = panelRows.every(r => r.result === 'OK')
 
   const validPartRows = partUsages.filter(r => r.sparepart_id && parseFloat(r.quantity) > 0)
   const sparepartsValid = noPartUsed || validPartRows.length > 0
 
   async function handleSubmit() {
     if (!selectedAsset) return alert('Pilih unit terlebih dahulu')
+    if (isPanelQuarterly && !panelDone) return alert('Lengkapi arus nominal (In) dan semua nilai pengukuran')
     if (isFreqBased && !frequency) return alert('Pilih frekuensi terlebih dahulu')
     if (!sparepartsValid) return alert('Pilih sparepart yang dipakai, atau centang "Tidak ada sparepart dipakai"')
 
@@ -485,12 +504,13 @@ export default function ChecklistPage() {
       : electricalCats.includes(category) ? 'Electrical'
       : mechanicalCats.includes(category) ? 'Mechanical' : 'HVAC'
 
-    const { data: sub, error } = await supabase.from('checklist_submissions').insert({
+      const isOk = isPanelQuarterly ? (panelAllOk && !catatan) : (allChecked && !catatan)
+      const { data: sub, error } = await supabase.from('checklist_submissions').insert({
       asset_id: selectedAsset,
       user_id: (await supabase.auth.getUser()).data.user?.id,
       category: cat,
       sub_category: category,
-      status: (allChecked && !catatan) ? 'ok' : 'nok',
+      status: isOk ? 'ok' : 'nok',
       inspector,
       year,
       month,
@@ -501,9 +521,27 @@ export default function ChecklistPage() {
     }).select().single()
 
     if (!error && sub) {
-      await supabase.from('checklist_items').insert(
-        items.map(label => ({ submission_id: sub.id, label, result: checks[label] ? 'OK' : 'NOK' }))
-      )
+      const itemRows = isPanelQuarterly
+        ? panelRows.map(r => ({
+            submission_id: sub.id, label: r.label, result: r.result,
+            item_key: r.item.id, value: r.value, unit: r.item.unit ?? null,
+            limit_text: r.item.limit_text ?? null, limit_min: r.limit_min,
+            limit_max: r.limit_max, template_version: PANEL_QUARTERLY.version,
+          }))
+        : items.map(label => ({ submission_id: sub.id, label, result: checks[label] ? 'OK' : 'NOK' }))
+
+      const { error: itemsError } = await supabase.from('checklist_items').insert(itemRows)
+      if (itemsError) {
+        alert('Gagal menyimpan item checklist: ' + itemsError.message)
+        setSaving(false)
+        return
+      }
+
+      if (isPanelQuarterly && asset && !asset.rated_current_a) {
+        await supabase.from('assets')
+          .update({ rated_current_a: parseFloat(panel.inRated.replace(',', '.')) })
+          .eq('id', selectedAsset)
+      }
 
       if (!noPartUsed && validPartRows.length > 0) {
         const userId = (await supabase.auth.getUser()).data.user?.id
@@ -538,6 +576,10 @@ export default function ChecklistPage() {
         entity_id: sub.id,
         new_value: { asset_id: selectedAsset, sub_category: category, status: sub.status, inspector },
       })
+    } else {
+      alert('Gagal menyimpan: ' + (error?.message ?? 'tidak diketahui'))
+      setSaving(false)
+      return
     }
     setSaving(false)
     setCatatan('')
@@ -639,6 +681,9 @@ export default function ChecklistPage() {
           </div>
         </div>
 
+        {isPanelQuarterly ? (
+          <PanelQuarterlyForm state={panel} onChange={setPanel} />
+        ) : (
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--primary)' }}>Item Checklist ({items.length} poin)</span>
@@ -667,6 +712,7 @@ export default function ChecklistPage() {
             </div>
           ))}
         </div>
+        )}
 
         <div style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

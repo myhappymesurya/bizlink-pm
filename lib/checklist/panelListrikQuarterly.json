@@ -1,0 +1,383 @@
+{
+  "template_name": "Maintenance Panel Listrik Quarterly",
+  "category": "Electrical Panel",
+  "version": 1,
+  "schedule": {
+    "type": "quarterly",
+    "interval_months": 3
+  },
+  "header_fields": [
+    {
+      "key": "panel",
+      "label": "Nama Panel",
+      "source": "equipment.equipment_name"
+    },
+    {
+      "key": "location",
+      "label": "Lokasi",
+      "source": "equipment.location"
+    },
+    {
+      "key": "period",
+      "label": "Bulan",
+      "source": "auto:inspection_date"
+    }
+  ],
+  "required_params": [
+    {
+      "key": "In",
+      "label": "Arus nominal panel (In)",
+      "unit": "A",
+      "source": "equipment.rated_current_a"
+    }
+  ],
+  "sections": [
+    {
+      "id": "prosedur",
+      "title": "Prosedur Keselamatan",
+      "items": [
+        {
+          "id": "proc_02",
+          "label": "Sarung tangan listrik / Rubber Mat / Sepatu Listrik digunakan",
+          "type": "yes_no",
+          "pass_value": "yes",
+          "required": true
+        }
+      ],
+      "note": "APD wajib dipakai sebelum mulai"
+    },
+    {
+      "id": "tegangan",
+      "title": "1. Pengukuran Tegangan",
+      "items": [
+        {
+          "id": "volt_rs",
+          "label": "Pengukuran Tegangan",
+          "sub_item": "R-S",
+          "type": "numeric",
+          "unit": "V",
+          "limit_text": "380 V (-5%/+10%)",
+          "rule": {
+            "type": "range",
+            "min": 361.0,
+            "max": 418.0
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "volt_st",
+          "label": "Pengukuran Tegangan",
+          "sub_item": "S-T",
+          "type": "numeric",
+          "unit": "V",
+          "limit_text": "380 V (-5%/+10%)",
+          "rule": {
+            "type": "range",
+            "min": 361.0,
+            "max": 418.0
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "volt_rt",
+          "label": "Pengukuran Tegangan",
+          "sub_item": "R-T",
+          "type": "numeric",
+          "unit": "V",
+          "limit_text": "380 V (-5%/+10%)",
+          "rule": {
+            "type": "range",
+            "min": 361.0,
+            "max": 418.0
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "volt_rn",
+          "label": "Pengukuran Tegangan",
+          "sub_item": "R-N",
+          "type": "numeric",
+          "unit": "V",
+          "limit_text": "220 V (-5%/+10%)",
+          "rule": {
+            "type": "range",
+            "min": 209.0,
+            "max": 242.0
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "volt_sn",
+          "label": "Pengukuran Tegangan",
+          "sub_item": "S-N",
+          "type": "numeric",
+          "unit": "V",
+          "limit_text": "220 V (-5%/+10%)",
+          "rule": {
+            "type": "range",
+            "min": 209.0,
+            "max": 242.0
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "volt_tn",
+          "label": "Pengukuran Tegangan",
+          "sub_item": "T-N",
+          "type": "numeric",
+          "unit": "V",
+          "limit_text": "220 V (-5%/+10%)",
+          "rule": {
+            "type": "range",
+            "min": 209.0,
+            "max": 242.0
+          },
+          "required": true,
+          "photo_on_fail": true
+        }
+      ],
+      "note": "Ukur saat panel hidup dan berbeban"
+    },
+    {
+      "id": "arus",
+      "title": "2. Pengukuran arus beban",
+      "items": [
+        {
+          "id": "amp_r",
+          "label": "Pengukuran arus beban",
+          "sub_item": "R",
+          "type": "numeric",
+          "unit": "A",
+          "limit_text": "Max 85% x In",
+          "rule": {
+            "type": "max_ratio",
+            "param": "In",
+            "ratio": 0.85
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "amp_s",
+          "label": "Pengukuran arus beban",
+          "sub_item": "S",
+          "type": "numeric",
+          "unit": "A",
+          "limit_text": "Max 85% x In",
+          "rule": {
+            "type": "max_ratio",
+            "param": "In",
+            "ratio": 0.85
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "amp_t",
+          "label": "Pengukuran arus beban",
+          "sub_item": "T",
+          "type": "numeric",
+          "unit": "A",
+          "limit_text": "Max 85% x In",
+          "rule": {
+            "type": "max_ratio",
+            "param": "In",
+            "ratio": 0.85
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "amp_n",
+          "label": "Pengukuran arus beban",
+          "sub_item": "N",
+          "type": "numeric",
+          "unit": "A",
+          "limit_text": "Harus 0",
+          "rule": {
+            "type": "lte",
+            "max": 0
+          },
+          "required": true,
+          "photo_on_fail": true,
+          "needs_engineering_confirmation": true
+        },
+        {
+          "id": "amp_gnd",
+          "label": "Pengukuran arus beban",
+          "sub_item": "Gnd",
+          "type": "numeric",
+          "unit": "A",
+          "limit_text": "Harus 0",
+          "rule": {
+            "type": "lte",
+            "max": 0
+          },
+          "required": true,
+          "photo_on_fail": true,
+          "needs_engineering_confirmation": true
+        }
+      ],
+      "note": "Ukur saat panel hidup dan berbeban"
+    },
+    {
+      "id": "frekuensi",
+      "title": "3. Pengukuran Frekuensi",
+      "items": [
+        {
+          "id": "freq_r",
+          "label": "Pengukuran Frekuensi",
+          "sub_item": "R",
+          "type": "numeric",
+          "unit": "Hz",
+          "limit_text": "50 Hz",
+          "rule": {
+            "type": "range",
+            "min": 49.5,
+            "max": 50.5
+          },
+          "required": true,
+          "photo_on_fail": true,
+          "needs_engineering_confirmation": true
+        },
+        {
+          "id": "freq_s",
+          "label": "Pengukuran Frekuensi",
+          "sub_item": "S",
+          "type": "numeric",
+          "unit": "Hz",
+          "limit_text": "50 Hz",
+          "rule": {
+            "type": "range",
+            "min": 49.5,
+            "max": 50.5
+          },
+          "required": true,
+          "photo_on_fail": true,
+          "needs_engineering_confirmation": true
+        },
+        {
+          "id": "freq_t",
+          "label": "Pengukuran Frekuensi",
+          "sub_item": "T",
+          "type": "numeric",
+          "unit": "Hz",
+          "limit_text": "50 Hz",
+          "rule": {
+            "type": "range",
+            "min": 49.5,
+            "max": 50.5
+          },
+          "required": true,
+          "photo_on_fail": true,
+          "needs_engineering_confirmation": true
+        }
+      ],
+      "note": "Ukur saat panel hidup dan berbeban"
+    },
+    {
+      "id": "temperatur",
+      "title": "4. Pengukuran temperature kabel",
+      "items": [
+        {
+          "id": "temp_r",
+          "label": "Pengukuran temperature kabel",
+          "sub_item": "R",
+          "type": "numeric",
+          "unit": "°C",
+          "limit_text": "< 65 C",
+          "rule": {
+            "type": "lt",
+            "max": 65
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "temp_s",
+          "label": "Pengukuran temperature kabel",
+          "sub_item": "S",
+          "type": "numeric",
+          "unit": "°C",
+          "limit_text": "< 65 C",
+          "rule": {
+            "type": "lt",
+            "max": 65
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "temp_t",
+          "label": "Pengukuran temperature kabel",
+          "sub_item": "T",
+          "type": "numeric",
+          "unit": "°C",
+          "limit_text": "< 65 C",
+          "rule": {
+            "type": "lt",
+            "max": 65
+          },
+          "required": true,
+          "photo_on_fail": true
+        },
+        {
+          "id": "temp_n",
+          "label": "Pengukuran temperature kabel",
+          "sub_item": "N",
+          "type": "numeric",
+          "unit": "°C",
+          "limit_text": "< 65 C",
+          "rule": {
+            "type": "lt",
+            "max": 65
+          },
+          "required": true,
+          "photo_on_fail": true
+        }
+      ],
+      "note": "Ukur saat panel hidup dan berbeban"
+    },
+    {
+      "id": "grounding",
+      "title": "5. Pengukuran tahanan kabel grounding ke body panel",
+      "items": [
+        {
+          "id": "proc_01",
+          "label": "Sumber energi dimatikan",
+          "type": "yes_no",
+          "pass_value": "yes",
+          "required": true,
+          "hint": "Wajib sebelum mengukur tahanan grounding"
+        },
+        {
+          "id": "gnd_pen",
+          "label": "Pengukuran tahanan kabel grounding ke body panel",
+          "sub_item": "Gnd-PEN",
+          "type": "numeric",
+          "unit": "Ohm",
+          "limit_text": "dibawah 1 ohm",
+          "rule": {
+            "type": "lt",
+            "max": 1
+          },
+          "required": true,
+          "photo_on_fail": true
+        }
+      ],
+      "note": "Panel dimatikan (LOTO) sebelum bagian ini"
+    }
+  ],
+  "signature": {
+    "required": true,
+    "label": "Diperiksa oleh / Tanda tangan"
+  },
+  "on_not_ok": {
+    "create_finding": true
+  }
+}

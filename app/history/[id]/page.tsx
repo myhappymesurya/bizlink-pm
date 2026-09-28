@@ -4,6 +4,11 @@ import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
 import { updatePmSchedule } from '@/lib/pmSchedule'
+import { PANEL_QUARTERLY } from '@/lib/checklist/panelListrikQuarterly'
+
+const PANEL_ORDER = new Map(
+  PANEL_QUARTERLY.sections.flatMap(s => s.items).map((it, idx) => [it.id, idx] as const)
+)
 
 type Submission = {
   id: string
@@ -23,6 +28,12 @@ type Item = {
   id: string
   label: string
   result: string
+  item_key?: string | null
+  value?: number | null
+  unit?: string | null
+  limit_text?: string | null
+  limit_min?: number | null
+  limit_max?: number | null
 }
 
 export default function DetailPage() {
@@ -41,7 +52,13 @@ export default function DetailPage() {
         supabase.from('corrective_actions').select('*').eq('submission_id', id).single(),
       ])
       setSub(s)
-      setItems(i || [])
+      const sortedItems = [...(i || [])].sort((a, b) => {
+        const ia = a.item_key ? PANEL_ORDER.get(a.item_key) : undefined
+        const ib = b.item_key ? PANEL_ORDER.get(b.item_key) : undefined
+        if (ia === undefined || ib === undefined) return 0
+        return ia - ib
+      })
+      setItems(sortedItems)
       setCorrective(c || null)
       setLoading(false)
     }
@@ -141,7 +158,20 @@ export default function DetailPage() {
                 color: 'white', fontSize: '13px' }}>
                 {item.result === 'OK' ? '✓' : '✗'}
               </div>
-              <span style={{ fontSize: '13px', flex: 1 }}>{item.label}</span>
+             <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px' }}>{item.label}</div>
+                {item.value != null && (
+                  <div style={{ fontSize: '12px', color: '#555', marginTop: '2px' }}>
+                    Nilai: <b>{item.value} {item.unit}</b>
+                    {item.limit_text && (
+                      <span style={{ color: '#aaa' }}>
+                        {' '}· Limit: {item.limit_text}
+                        {item.limit_text.includes('x In') && item.limit_max != null && ` (= ${item.limit_max} ${item.unit ?? ''})`}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
               <span style={{ fontSize: '12px', fontWeight: 500,
                 color: item.result === 'OK' ? '#22c55e' : '#ef4444' }}>
                 {item.result}
