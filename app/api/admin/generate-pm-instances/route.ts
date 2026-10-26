@@ -28,6 +28,9 @@ function generateDates(task: any, fromDate: Date, toDate: Date): string[] {
       }
     } else if (task.frequency === 'monthly') {
       if (current.getDate() === task.frequency_day) dates.push(dateStr)
+    } else if (task.frequency === 'yearly') {
+      const [, m, d] = dateStr.split('-').map(Number)
+      if (m === task.frequency_month && d === task.frequency_day) dates.push(dateStr)    
     }
     current.setDate(current.getDate() + 1)
   }
