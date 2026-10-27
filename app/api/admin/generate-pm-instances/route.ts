@@ -40,14 +40,10 @@ function generateDates(task: any, fromDate: Date, toDate: Date): string[] {
         if (weeksSinceStart >= 0 && weeksSinceStart % interval === 0) dates.push(dateStr)
       }
     } else if (task.frequency === 'monthly') {
-<<<<<<< HEAD
-      if (current.getDate() === task.frequency_day) dates.push(dateStr)
-=======
       if (current.getUTCDate() === task.frequency_day) dates.push(dateStr)
     } else if (task.frequency === 'yearly') {
       const [, m, d] = dateStr.split('-').map(Number)
       if (m === task.frequency_month && d === task.frequency_day) dates.push(dateStr)
->>>>>>> 80da9bc (Generate PM instances window per frekuensi, batch upsert)
     }
     current.setUTCDate(current.getUTCDate() + 1)
   }
