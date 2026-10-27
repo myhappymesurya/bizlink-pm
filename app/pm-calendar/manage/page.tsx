@@ -11,6 +11,7 @@ type Task = {
   description: string | null
   frequency: string
   frequency_day: number | null
+  frequency_month: number | null
   start_date: string
   end_date: string | null
   is_active: boolean
@@ -23,10 +24,12 @@ const FREQUENCY_LABELS: Record<string, string> = {
   'weekly': 'Mingguan',
   'biweekly': '2 Minggu Sekali',
   'triweekly': '3 Minggu Sekali',
-  'monthly': 'Bulanan'
+  'monthly': 'Bulanan',
+  'yearly': 'Tahunan'
 }
 
 const DAYS_OF_WEEK = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
 export default function PMCalendarManagePage() {
   const supabase = createClient()
@@ -42,6 +45,7 @@ export default function PMCalendarManagePage() {
   const [description, setDescription] = useState('')
   const [frequency, setFrequency] = useState('one-time')
   const [frequencyDay, setFrequencyDay] = useState(1)
+  const [frequencyMonth, setFrequencyMonth] = useState(1)
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
   const [endDate, setEndDate] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -89,16 +93,24 @@ export default function PMCalendarManagePage() {
     if (!title.trim()) return
     setSaving(true)
     const { data: session } = await supabase.auth.getSession()
-    const { data: task } = await supabase.from('pm_tasks').insert({
+    const { data: task, error } = await supabase.from('pm_tasks').insert({
       title,
       description: description || null,
       frequency,
-      frequency_day: ['weekly', 'biweekly', 'triweekly', 'monthly'].includes(frequency) ? frequencyDay : null,
+      frequency_day: ['weekly', 'biweekly', 'triweekly', 'monthly', 'yearly'].includes(frequency) ? frequencyDay : null,
+      frequency_month: frequency === 'yearly' ? frequencyMonth : null,
       start_date: startDate,
       end_date: endDate || null,
       due_date: frequency === 'one-time' ? (dueDate || null) : null,
       created_by: session.session?.user.id
     }).select().single()
+    
+    if (error) {
+      alert('Gagal menyimpan: ' + error.message)
+      setSaving(false)
+      return
+    }
+    
     if (task) {
       await logActivity(supabase, {
         action: 'create',
@@ -113,6 +125,7 @@ export default function PMCalendarManagePage() {
     setDescription('')
     setFrequency('one-time')
     setFrequencyDay(1)
+    setFrequencyMonth(1)
     setStartDate(new Date().toISOString().split('T')[0])
     setEndDate('')
     setDueDate('')
@@ -209,6 +222,7 @@ export default function PMCalendarManagePage() {
                     <option value="biweekly">2 Minggu Sekali</option>
                     <option value="triweekly">3 Minggu Sekali</option>
                     <option value="monthly">Bulanan</option>
+                    <option value="yearly">Tahunan</option>
                   </select>
                 </div>
                 {(frequency === 'weekly' || frequency === 'biweekly' || frequency === 'triweekly') && (
@@ -224,6 +238,20 @@ export default function PMCalendarManagePage() {
                     <label style={fieldLabel}>Tanggal</label>
                     <input type="number" min={1} max={28} value={frequencyDay} onChange={e => setFrequencyDay(Number(e.target.value))} style={fieldInput} />
                   </div>
+                )}
+                {frequency === 'yearly' && (
+                  <>
+                    <div style={{ flex: '1 1 150px' }}>
+                      <label style={fieldLabel}>Bulan</label>
+                      <select value={frequencyMonth} onChange={e => setFrequencyMonth(Number(e.target.value))} style={fieldInput}>
+                        {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ flex: '1 1 150px' }}>
+                      <label style={fieldLabel}>Tanggal</label>
+                      <input type="number" min={1} max={28} value={frequencyDay} onChange={e => setFrequencyDay(Number(e.target.value))} style={fieldInput} />
+                    </div>
+                  </>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -288,6 +316,7 @@ export default function PMCalendarManagePage() {
                       {FREQUENCY_LABELS[task.frequency]}
                       {['weekly', 'biweekly', 'triweekly'].includes(task.frequency) && task.frequency_day !== null && ` — ${DAYS_OF_WEEK[task.frequency_day]}`}
                       {task.frequency === 'monthly' && task.frequency_day !== null && ` — tgl ${task.frequency_day}`}
+                      {task.frequency === 'yearly' && task.frequency_day !== null && task.frequency_month !== null && ` — ${task.frequency_day} ${MONTHS[task.frequency_month - 1]}`}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{task.start_date}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
