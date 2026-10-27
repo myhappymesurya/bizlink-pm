@@ -25,7 +25,9 @@ const FREQUENCY_LABELS: Record<string, string> = {
   'biweekly': '2 Minggu Sekali',
   'triweekly': '3 Minggu Sekali',
   'monthly': 'Bulanan',
-  'yearly': 'Tahunan'
+  'yearly': 'Tahunan',
+  'quarterly': '3 Bulanan',
+  'semiannual': '6 Bulanan'
 }
 
 const DAYS_OF_WEEK = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
@@ -97,7 +99,7 @@ export default function PMCalendarManagePage() {
       title,
       description: description || null,
       frequency,
-      frequency_day: ['weekly', 'biweekly', 'triweekly', 'monthly', 'yearly'].includes(frequency) ? frequencyDay : null,
+      frequency_day: ['weekly', 'biweekly', 'triweekly', 'monthly', 'quarterly', 'semiannual', 'yearly'].includes(frequency) ? frequencyDay : null,
       frequency_month: frequency === 'yearly' ? frequencyMonth : null,
       start_date: startDate,
       end_date: endDate || null,
@@ -222,6 +224,8 @@ export default function PMCalendarManagePage() {
                     <option value="biweekly">2 Minggu Sekali</option>
                     <option value="triweekly">3 Minggu Sekali</option>
                     <option value="monthly">Bulanan</option>
+                    <option value="quarterly">3 Bulanan</option>
+                    <option value="semiannual">6 Bulanan</option>
                     <option value="yearly">Tahunan</option>
                   </select>
                 </div>
@@ -233,7 +237,7 @@ export default function PMCalendarManagePage() {
                     </select>
                   </div>
                 )}
-                {frequency === 'monthly' && (
+                {['monthly', 'quarterly', 'semiannual'].includes(frequency) && (
                   <div style={{ flex: '1 1 150px' }}>
                     <label style={fieldLabel}>Tanggal</label>
                     <input type="number" min={1} max={28} value={frequencyDay} onChange={e => setFrequencyDay(Number(e.target.value))} style={fieldInput} />
@@ -316,6 +320,7 @@ export default function PMCalendarManagePage() {
                       {FREQUENCY_LABELS[task.frequency]}
                       {['weekly', 'biweekly', 'triweekly'].includes(task.frequency) && task.frequency_day !== null && ` — ${DAYS_OF_WEEK[task.frequency_day]}`}
                       {task.frequency === 'monthly' && task.frequency_day !== null && ` — tgl ${task.frequency_day}`}
+                      {['quarterly', 'semiannual'].includes(task.frequency) && task.frequency_day !== null && ` — tgl ${task.frequency_day}`}
                       {task.frequency === 'yearly' && task.frequency_day !== null && task.frequency_month !== null && ` — ${task.frequency_day} ${MONTHS[task.frequency_month - 1]}`}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{task.start_date}</td>

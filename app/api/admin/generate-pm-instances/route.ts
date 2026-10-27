@@ -14,6 +14,8 @@ const WINDOW_DAYS: Record<string, number> = {
   biweekly: 90,
   triweekly: 90,
   monthly: 365,
+  quarterly: 365,
+  semiannual: 365 * 2,
   yearly: 365 * 3,
 }
 
@@ -41,6 +43,13 @@ function generateDates(task: any, fromDate: Date, toDate: Date): string[] {
       }
     } else if (task.frequency === 'monthly') {
       if (current.getUTCDate() === task.frequency_day) dates.push(dateStr)
+    } else if (task.frequency === 'quarterly' || task.frequency === 'semiannual') {
+      const interval = task.frequency === 'quarterly' ? 3 : 6
+      const [sy, sm] = task.start_date.split('-').map(Number)
+      const monthsSinceStart = (current.getUTCFullYear() - sy) * 12 + (current.getUTCMonth() + 1 - sm)
+      if (current.getUTCDate() === task.frequency_day && monthsSinceStart >= 0 && monthsSinceStart % interval === 0) {
+        dates.push(dateStr)
+      }
     } else if (task.frequency === 'yearly') {
       const [, m, d] = dateStr.split('-').map(Number)
       if (m === task.frequency_month && d === task.frequency_day) dates.push(dateStr)
