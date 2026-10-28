@@ -22,6 +22,7 @@ type Submission = {
   submitted_at: string
   approved_at: string | null
   frequency: string
+  notes: string | null
 }
 
 type Item = {
@@ -137,6 +138,26 @@ export default function DetailPage() {
             ))}
           </div>
         </div>
+        
+        {/* ===== MULAI: card catatan teknisi ===== */}
+        {sub.notes && (
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px',
+            border: '1px solid #fecaca' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#ef4444', marginBottom: '12px' }}>
+              📝 Catatan Teknisi
+            </h3>
+            <div style={{ background: '#fff1f2', padding: '12px', borderRadius: '8px' }}>
+              <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {sub.notes}
+              </p>
+            </div>
+            <p style={{ fontSize: '12px', color: '#aaa', margin: '8px 0 0' }}>
+              Oleh {sub.inspector} · {new Date(sub.submitted_at).toLocaleString('id-ID')}
+            </p>
+          </div>
+        )}
+        {/* ===== SELESAI: card catatan teknisi ===== */}
 
         <div style={{ background: 'white', padding: '24px', borderRadius: '12px',
           boxShadow: '0 2px 16px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
