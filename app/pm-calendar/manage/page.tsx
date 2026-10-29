@@ -91,6 +91,22 @@ export default function PMCalendarManagePage() {
     setGenerating(false)
   }
 
+    async function notifyTelegram(event: 'completed' | 'created', id: string) {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      await fetch('/api/notify/task-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session?.access_token}`,
+        },
+        body: JSON.stringify({ event, id }),
+      })
+    } catch (e) {
+      console.error('Notif Telegram gagal:', e)
+    }
+  }
+  
   async function handleSaveTask() {
     if (!title.trim()) return
     setSaving(true)
@@ -120,6 +136,7 @@ export default function PMCalendarManagePage() {
         entity_id: task.id,
         new_value: { title, frequency, start_date: startDate },
       })
+      await notifyTelegram('created', task.id)
     }
     setSaving(false)
     setShowForm(false)

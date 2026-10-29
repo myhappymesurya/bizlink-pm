@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/generate-pm-instances",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/morning-tasks",
+      "schedule": "0 23 * * *"
     }
   ]
 }

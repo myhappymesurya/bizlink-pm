@@ -85,6 +85,22 @@ export default function PMCalendarPage() {
     setSelectedInstances(dayInstances)
   }
 
+    async function notifyTelegram(event: 'completed' | 'created', id: string) {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      await fetch('/api/notify/task-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session?.access_token}`,
+        },
+        body: JSON.stringify({ event, id }),
+      })
+    } catch (e) {
+      console.error('Notif Telegram gagal:', e)
+    }
+  }
+  
   async function handleComplete(instanceId: string) {
     if (!completingNotes.trim()) return
     const { data: session } = await supabase.auth.getSession()
@@ -94,6 +110,7 @@ export default function PMCalendarPage() {
       completed_at: new Date().toISOString(),
       notes: completingNotes
     }).eq('id', instanceId)
+    await notifyTelegram('completed', instanceId)
     setCompleting(null)
     setCompletingNotes('')
     await fetchInstances()

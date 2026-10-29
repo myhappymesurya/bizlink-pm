@@ -86,6 +86,22 @@ export default function WorkOrdersPage() {
   const validPartRows = partUsages.filter(r => r.sparepart_id && parseFloat(r.quantity) > 0)
   const sparepartsValid = noPartUsed || validPartRows.length > 0
 
+    async function notifyTelegram(event: 'completed' | 'created', id: string) {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      await fetch('/api/notify/task-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session?.access_token}`,
+        },
+        body: JSON.stringify({ event, id }),
+      })
+    } catch (e) {
+      console.error('Notif Telegram gagal:', e)
+    }
+  }
+  
   async function handleComplete(id: string) {
     if (!completingNotes.trim()) return
     if (!sparepartsValid) return alert('Pilih sparepart yang dipakai, atau centang "Tidak ada sparepart dipakai"')
@@ -133,6 +149,7 @@ export default function WorkOrdersPage() {
       old_value: { status: 'pending' },
       new_value: { status: 'completed', notes: completingNotes },
     })
+    await notifyTelegram('completed', id)
     setCompletingId(null)
     setCompletingNotes('')
     resetPartForm()
