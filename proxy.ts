@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
 
   // Halaman yang tidak perlu login
-  const publicPaths = ['/login', '/auth/set-password']
+    const publicPaths = ['/login', '/auth/set-password', '/request']
   const isPublic = publicPaths.some(path => request.nextUrl.pathname.startsWith(path))
 
   // Kalau tidak ada session dan bukan halaman public → redirect ke login
