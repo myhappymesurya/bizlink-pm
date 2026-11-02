@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
+import CompleteWorkOrderForm from '@/components/CompleteWorkOrderForm'
 
 type Instance = {
   id: string
@@ -30,10 +31,13 @@ export default function PMCalendarPage() {
   const [instances, setInstances] = useState<Instance[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedInstances, setSelectedInstances] = useState<Instance[]>([])
   const [completing, setCompleting] = useState<string | null>(null)
-  const [completingNotes, setCompletingNotes] = useState('')
   const [userRole, setUserRole] = useState<string>('')
+
+  // Daftar tugas di popup selalu diambil dari data terbaru, jadi otomatis ikut ter-update
+  const selectedInstances = selectedDate
+    ? instances.filter(i => i.scheduled_date === selectedDate)
+    : []
 
   useEffect(() => {
     fetchInstances()
@@ -82,40 +86,11 @@ export default function PMCalendarPage() {
     const dayInstances = instances.filter(i => i.scheduled_date === dateStr)
     if (dayInstances.length === 0) return
     setSelectedDate(dateStr)
-    setSelectedInstances(dayInstances)
   }
 
-    async function notifyTelegram(event: 'completed' | 'created', id: string) {
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      await fetch('/api/notify/task-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session?.access_token}`,
-        },
-        body: JSON.stringify({ event, id }),
-      })
-    } catch (e) {
-      console.error('Notif Telegram gagal:', e)
-    }
-  }
-  
-  async function handleComplete(instanceId: string) {
-    if (!completingNotes.trim()) return
-    const { data: session } = await supabase.auth.getSession()
-    await supabase.from('pm_task_instances').update({
-      status: 'completed',
-      completed_by: session.session?.user.id,
-      completed_at: new Date().toISOString(),
-      notes: completingNotes
-    }).eq('id', instanceId)
-    await notifyTelegram('completed', instanceId)
+  function closeModal() {
+    setSelectedDate(null)
     setCompleting(null)
-    setCompletingNotes('')
-    await fetchInstances()
-    const updated = instances.filter(i => i.scheduled_date === selectedDate)
-    setSelectedInstances(updated.map(i => i.id === instanceId ? { ...i, status: 'completed', notes: completingNotes } : i))
   }
 
   const firstDay = new Date(currentYear, currentMonth, 1).getDay()
@@ -204,7 +179,7 @@ export default function PMCalendarPage() {
             ))}
           </div>
 
-          {loading ? (
+          {loading && instances.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>Memuat...</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
@@ -269,13 +244,13 @@ export default function PMCalendarPage() {
       {/* Popup modal */}
       {selectedDate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
-          onClick={e => { if (e.target === e.currentTarget) { setSelectedDate(null); setCompleting(null); setCompletingNotes('') } }}>
+          onClick={e => { if (e.target === e.currentTarget) closeModal() }}>
           <div style={{ background: 'white', borderRadius: 8, width: 480, maxWidth: '90%', maxHeight: '80vh', overflow: 'auto' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 15, color: 'var(--primary)' }}>
                 📅 {new Date(selectedDate + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </h3>
-              <button onClick={() => { setSelectedDate(null); setCompleting(null); setCompletingNotes('') }}
+              <button onClick={closeModal}
                 style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
             </div>
             <div style={{ padding: 20 }}>
@@ -287,8 +262,8 @@ export default function PMCalendarPage() {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <div>
-                      <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{inst.pm_tasks.title}</p>
-                      {inst.pm_tasks.description && (
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{inst.pm_tasks?.title || '(tugas dihapus)'}</p>
+                      {inst.pm_tasks?.description && (
                         <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>{inst.pm_tasks.description}</p>
                       )}
                     </div>
@@ -308,35 +283,18 @@ export default function PMCalendarPage() {
                   )}
 
                   {inst.status === 'pending' && (
-                    <>
-                      {completing === inst.id ? (
-                        <div style={{ marginTop: 12 }}>
-                          <textarea
-                            value={completingNotes}
-                            onChange={e => setCompletingNotes(e.target.value)}
-                            placeholder="Catatan penyelesaian (wajib)..."
-                            rows={3}
-                            style={{ width: '100%', padding: 8, border: '1px solid var(--border)', borderRadius: 4, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' as const }}
-                          />
-                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button onClick={() => { setCompleting(null); setCompletingNotes('') }}
-                              style={{ flex: 1, padding: '8px', background: 'var(--text-secondary)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
-                              Batal
-                            </button>
-                            <button onClick={() => handleComplete(inst.id)}
-                              disabled={!completingNotes.trim()}
-                              style={{ flex: 1, padding: '8px', background: completingNotes.trim() ? 'var(--success)' : '#e0e0e0', color: 'white', border: 'none', borderRadius: 4, cursor: completingNotes.trim() ? 'pointer' : 'not-allowed', fontSize: 13 }}>
-                              ✓ Tandai Selesai
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button onClick={() => setCompleting(inst.id)}
-                          style={{ marginTop: 8, padding: '6px 14px', background: 'var(--success)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-                          Tandai Selesai
-                        </button>
-                      )}
-                    </>
+                    completing === inst.id ? (
+                      <CompleteWorkOrderForm
+                        instanceId={inst.id}
+                        onCancel={() => setCompleting(null)}
+                        onDone={() => { setCompleting(null); fetchInstances() }}
+                      />
+                    ) : (
+                      <button onClick={() => setCompleting(inst.id)}
+                        style={{ marginTop: 8, padding: '6px 14px', background: 'var(--success)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                        Tandai Selesai
+                      </button>
+                    )
                   )}
                 </div>
               ))}
