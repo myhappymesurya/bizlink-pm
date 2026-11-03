@@ -141,6 +141,9 @@ export default function Navbar() {
               <Link href="/admin/activity-log" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
                 Activity Log
               </Link>
+              <Link href="/admin/facility-requests" style={navLinkStyle} onMouseEnter={(e) => handleHover(e, true)} onMouseLeave={(e) => handleHover(e, false)}>
+                Facility Requests
+              </Link>
             </>
           )}
 
