@@ -75,3 +75,41 @@ export async function sendTelegramAdmin(
   }
   return sendTelegram(html, adminChatId)
 }
+
+// Kirim foto ke Telegram. TIDAK PERNAH melempar error.
+export async function sendTelegramPhoto(
+  photo: Blob,
+  filename: string,
+  captionHtml: string,
+  chatIdOverride?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const chatId = chatIdOverride ?? process.env.TELEGRAM_CHAT_ID
+
+  if (!token || !chatId) {
+    console.error('TELEGRAM: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID belum diisi')
+    return { ok: false, error: 'Env Telegram belum diisi' }
+  }
+
+  try {
+    const form = new FormData()
+    form.append('chat_id', chatId)
+    form.append('caption', captionHtml)
+    form.append('parse_mode', 'HTML')
+    form.append('photo', photo, filename)
+
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: 'POST',
+      body: form,
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      console.error('TELEGRAM foto gagal kirim:', res.status, body)
+      return { ok: false, error: `Telegram ${res.status}: ${body}` }
+    }
+    return { ok: true }
+  } catch (e: any) {
+    console.error('TELEGRAM foto error jaringan:', e?.message)
+    return { ok: false, error: e?.message || 'Gagal terhubung ke Telegram' }
+  }
+}

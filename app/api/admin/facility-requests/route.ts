@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTelegram, escapeHtml } from '@/lib/telegram'
+import { sendTelegram, sendTelegramPhoto, escapeHtml } from '@/lib/telegram'
 
 export const dynamic = 'force-dynamic'
 
@@ -229,6 +229,22 @@ export async function POST(request: NextRequest) {
       `${req.department ? ` (${escapeHtml(req.department)})` : ''}\n` +
       `Jadwal: ${fmtDate(today)}`
     )
+    
+    // 6. Kirim foto ke grup teknisi (kalau ada); tidak pernah melempar error
+    if (req.photo_path) {
+      const { data: file, error: dlErr } = await supabaseAdmin.storage
+        .from('facility-photos')
+        .download(req.photo_path)
+      if (dlErr || !file) {
+        console.error('FACILITY approve: gagal ambil foto:', dlErr)
+      } else {
+        await sendTelegramPhoto(
+          file,
+          req.photo_path.split('/').pop() || 'foto.jpg',
+          `📷 Foto laporan: ${escapeHtml(title)}`
+        )
+      }
+    }  
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
