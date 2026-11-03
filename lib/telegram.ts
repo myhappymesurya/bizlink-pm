@@ -16,10 +16,11 @@ export function escapeHtml(text: string): string {
 // Mengirim pesan ke grup Telegram. TIDAK PERNAH melempar error,
 // supaya kegagalan notifikasi tidak menggagalkan proses utama.
 export async function sendTelegram(
-  html: string
+  html: string,
+  chatIdOverride?: string
 ): Promise<{ ok: boolean; error?: string }> {
   const token = process.env.TELEGRAM_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_CHAT_ID
+  const chatId = chatIdOverride ?? process.env.TELEGRAM_CHAT_ID
 
   if (!token || !chatId) {
     console.error('TELEGRAM: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID belum diisi')
@@ -61,4 +62,16 @@ export async function sendTelegram(
   }
 
   return { ok: true }
+  }
+  
+// Khusus grup admin. Sengaja TIDAK fallback ke grup teknisi.
+export async function sendTelegramAdmin(
+  html: string
+): Promise<{ ok: boolean; error?: string }> {
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID
+  if (!adminChatId) {
+    console.error('TELEGRAM: TELEGRAM_ADMIN_CHAT_ID belum diisi')
+    return { ok: false, error: 'TELEGRAM_ADMIN_CHAT_ID belum diisi' }
+  }
+  return sendTelegram(html, adminChatId)
 }

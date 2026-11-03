@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendTelegramAdmin, escapeHtml } from '@/lib/telegram'
 
 export const runtime = 'nodejs'
 
@@ -122,8 +123,21 @@ export async function POST(request: NextRequest) {
       if (photo_path) {
         await supabaseAdmin.storage.from('facility-photos').remove([photo_path])
       }
-      return NextResponse.json({ error: 'Gagal menyimpan laporan' }, { status: 500 })
+            return NextResponse.json({ error: 'Gagal menyimpan laporan' }, { status: 500 })
     }
+
+    // Kabari grup admin (tidak pernah melempar error)
+    const shortDesc = description.length > 300 ? description.slice(0, 300) + '...' : description
+    await sendTelegramAdmin(
+      `🆕 <b>Laporan Facility Baru</b>\n` +
+      `Kategori: <b>${escapeHtml(category)}</b>\n` +
+      `Lokasi: ${escapeHtml(location)}\n` +
+      `Pelapor: ${escapeHtml(requester_name)}` +
+      (department ? ` (${escapeHtml(department)})` : '') +
+      `\nFoto: ${photo_path ? 'ada' : 'tidak ada'}\n\n` +
+      `${escapeHtml(shortDesc)}\n\n` +
+      `Menunggu persetujuan admin.`
+    )
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
