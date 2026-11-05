@@ -37,3 +37,55 @@ button {
 input, select, textarea {
   font-family: inherit;
 }
+
+/* ===== Tabel bisa digeser di layar HP ===== */
+@media (max-width: 768px) {
+  div:has(> table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  div:has(> table) > table {
+    min-width: 600px;
+  }
+}
+
+/* ===== Grid & kartu ramah HP ===== */
+@media (max-width: 768px) {
+  /* Dashboard: 6 kolom jadi 2 kolom */
+  [style*="repeat(6, 1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* KPI Analytics & Reports: grafik jadi 1 kolom penuh */
+  [style*="minmax(400px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ===== Jarak, huruf isian, dan popup ramah HP ===== */
+@media (max-width: 768px) {
+  /* Jarak pinggir halaman */
+  [style*="padding: 32px"] {
+    padding: 16px 12px !important;
+  }
+  /* Jarak dalam kartu */
+  [style*="padding: 24px"] {
+    padding: 16px !important;
+  }
+  /* Kartu halaman login */
+  [style*="padding: 48px"] {
+    padding: 28px 20px !important;
+  }
+  /* Cegah iPhone zoom otomatis saat mengetuk kolom isian */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  /* Popup tidak boleh lebih tinggi dari layar */
+  [style*="position: fixed"][style*="z-index: 100"] > div {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  /* Kotak tanggal di kalender lebih pendek */
+  [style*="min-height: 80px"] {
+    min-height: 56px !important;
+  }
+}
