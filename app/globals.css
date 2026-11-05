@@ -89,3 +89,12 @@ input, select, textarea {
     min-height: 56px !important;
   }
 }
+
+/* ===== Tabel lebih padat di HP ===== */
+@media (max-width: 768px) {
+  div:has(> table) th,
+  div:has(> table) td {
+    padding: 8px 8px !important;
+    font-size: 12px !important;
+  }
+}
