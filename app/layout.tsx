@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 // Paksa lebar halaman 980px di HP (tampilan seperti desktop, bisa di-zoom)
 export const viewport: Viewport = {
   width: 980,
+  initialScale: undefined,
 }
 
 export default function RootLayout({
