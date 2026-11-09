@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity } from '@/lib/activityLog'
+import { isMeasurementComplete } from '@/lib/equipmentMeasurements'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +33,13 @@ export async function POST(request: NextRequest) {
 
     if (fetchError || !current) {
       return NextResponse.json({ error: 'Mesin tidak dalam status ON' }, { status: 400 })
+    }
+    
+    if (!isMeasurementComplete(equipment_type, current.measurements_data)) {
+      return NextResponse.json(
+        { error: 'Measurement belum lengkap. Isi semua measurement dulu sebelum mematikan mesin.' },
+        { status: 400 }
+      )
     }
 
     const now = new Date()

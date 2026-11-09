@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navbar from '@/components/Navbar'
+import { isMeasurementComplete } from '@/lib/equipmentMeasurements'
 
 type MeasurementField = { key: string; label: string; placeholder?: string }
 type ExtraField = { key: string; label: string; type: 'select'; options: string[] }
@@ -185,6 +186,8 @@ export default function RunningHoursPage() {
   const [showMeasurements, setShowMeasurements] = useState<string | null>(null)
   const [measInput, setMeasInput] = useState<Record<string, string>>({})
   const [savingMeas, setSavingMeas] = useState(false)
+  const [myUserId, setMyUserId] = useState<string | null>(null)
+  const [dismissed, setDismissed] = useState<string[]>([])
 
   const config = EQUIPMENT.find(e => e.id === selectedType)!
   const allChecked = config.checklist.every(item => checks[item])
@@ -200,6 +203,27 @@ export default function RunningHoursPage() {
     setChecks({})
     setMeasurements({})
   }, [selectedType])
+  
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setMyUserId(data.session?.user.id ?? null)
+    })
+  }, [])
+
+  // Pop-up muncul berdasarkan KONDISI: ada mesin ON milik saya yang measurement-nya belum lengkap
+  useEffect(() => {
+    if (!myUserId || showMeasurements) return
+    const pending = statuses.find(s =>
+      s.status === 'on' &&
+      s.started_by === myUserId &&
+      !isMeasurementComplete(s.equipment_type, s.measurements_data) &&
+      !dismissed.includes(`${s.equipment_type}__${s.equipment_name}`)
+    )
+    if (pending) {
+      setShowMeasurements(`${pending.equipment_type}__${pending.equipment_name}`)
+      setMeasInput(pending.measurements_data || {})
+    }
+  }, [statuses, myUserId, showMeasurements, dismissed])
 
   async function fetchStatuses() {
     const { data } = await supabase
@@ -270,19 +294,22 @@ export default function RunningHoursPage() {
     setSubmitting(false)
   }
 
-  async function handleSaveMeasurements(equipment_type: string, equipment_name: string) {
+    async function handleSaveMeasurements(equipment_type: string, equipment_name: string) {
     setSavingMeas(true)
-    const { error } = await supabase
+    const { data: saved, error } = await supabase
       .from('equipment_status')
       .update({ measurements_data: measInput, last_updated: new Date().toISOString() })
       .eq('equipment_type', equipment_type)
       .eq('equipment_name', equipment_name)
+      .select('id')
     setSavingMeas(false)
-    if (!error) {
-      setShowMeasurements(null)
-      setMeasInput({})
-      fetchStatuses()
+    if (error || !saved || saved.length === 0) {
+      setError('Gagal menyimpan measurement' + (error ? ': ' + error.message : ' (kemungkinan diblok izin database)'))
+      return
     }
+    await fetchStatuses()
+    setShowMeasurements(null)
+    setMeasInput({})
   }
 
   const onStatus = statuses.filter(s => s.status === 'on')
@@ -388,6 +415,11 @@ export default function RunningHoursPage() {
                           </div>
                         )}
 
+                        {unit.status === 'on' && !isMeasurementComplete(unit.equipment_type, unit.measurements_data) && (
+                          <div style={{ fontSize: 11, color: 'var(--danger)', marginBottom: 8 }}>
+                            ⚠ Measurement belum diisi, Stop terkunci
+                          </div>
+                        )}
                         {unit.status === 'on' && (
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             <button
@@ -413,7 +445,7 @@ export default function RunningHoursPage() {
                             </button>
                             <button
                               onClick={() => handleStop(unit.equipment_type, unit.equipment_name)}
-                              disabled={submitting}
+                              disabled={submitting || !isMeasurementComplete(unit.equipment_type, unit.measurements_data)}
                               style={{
                                 padding: '4px 10px',
                                 background: 'var(--danger)',
@@ -423,7 +455,7 @@ export default function RunningHoursPage() {
                                 cursor: 'pointer',
                                 fontSize: 11,
                                 fontWeight: 600,
-                                opacity: submitting ? 0.6 : 1
+                                opacity: (submitting || !isMeasurementComplete(unit.equipment_type, unit.measurements_data)) ? 0.4 : 1
                               }}
                             >
                               ⏹ Stop
@@ -465,16 +497,20 @@ export default function RunningHoursPage() {
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                      <button
-                        onClick={() => { setShowMeasurements(null); setMeasInput({}) }}
+                                            <button
+                        onClick={() => {
+                          setDismissed(prev => [...prev, `${type}__${name}`])
+                          setShowMeasurements(null)
+                          setMeasInput({})
+                        }}
                         style={{ flex: 1, padding: 10, background: 'var(--text-secondary)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
                       >
-                        Batal
+                        Isi nanti
                       </button>
                       <button
                         onClick={() => handleSaveMeasurements(type, name)}
-                        disabled={savingMeas}
-                        style={{ flex: 1, padding: 10, background: 'var(--primary)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
+                        disabled={savingMeas || !isMeasurementComplete(type, measInput)}
+                        style={{ flex: 1, padding: 10, background: isMeasurementComplete(type, measInput) ? 'var(--primary)' : '#e0e0e0', color: 'white', border: 'none', borderRadius: 4, cursor: isMeasurementComplete(type, measInput) ? 'pointer' : 'not-allowed', fontWeight: 600 }}
                       >
                         {savingMeas ? 'Menyimpan...' : 'Simpan'}
                       </button>
