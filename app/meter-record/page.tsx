@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { INSPECTOR_OPTIONS } from '@/lib/constants'
 import { exportTablePDF } from '@/lib/exportPDF'
 import Navbar from '@/components/Navbar'
 import { logActivity } from '@/lib/activityLog'
@@ -135,7 +134,7 @@ export default function MeterRecordPage() {
 
   async function handleSubmit() {
     setError('')
-    if (!inspector) { setError('Pilih inspector terlebih dahulu'); return }
+    if (!inspector.trim()) { setError('Nama inspector wajib diisi'); return }
     const emptyFields = meter.fields.filter(f => !f.auto && (!readings[f.key] || readings[f.key].trim() === ''))
     if (emptyFields.length > 0) { setError('Semua field pengukuran harus diisi'); return }
 
@@ -152,7 +151,7 @@ export default function MeterRecordPage() {
         reading_2: readings['reading_2'] ? parseFloat(readings['reading_2']) : null,
         total: readings['total'] ? parseFloat(readings['total']) : null,
         notes: meter.hasNotes ? (notes || null) : null,
-        inspector,
+        inspector: inspector.trim(),
         user_id: userId,
         submitted_at: new Date().toISOString()
       })
@@ -328,28 +327,15 @@ export default function MeterRecordPage() {
         {/* Inspector */}
         <div style={card}>
           <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--primary)', marginBottom: '20px' }}>👤 Inspector</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-            {INSPECTOR_OPTIONS.map(name => {
-              const isActive = inspector === name
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setInspector(name)}
-                  style={{
-                    padding: '10px', borderRadius: '6px', fontSize: '14px', fontWeight: 600,
-                    cursor: 'pointer',
-                    background: isActive ? 'var(--primary)' : 'white',
-                    color: isActive ? 'white' : 'var(--text-primary)',
-                    border: '1px solid var(--border)'
-                  }}
-                >
-                  {name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+          <input
+            type="text"
+            value={inspector}
+            onChange={e => setInspector(e.target.value)}
+            placeholder="Tulis nama Anda"
+            maxLength={100}
+            style={fieldInput}
+          />
+         </div>
 
         {/* Error */}
         {error && (
